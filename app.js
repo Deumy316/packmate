@@ -86,7 +86,13 @@
     $$('[data-trip-type]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.tripType === el.typeInput.value)));
     el.destinationLabel.innerHTML = `${isInternational ? '해외 국가' : '국내 지역'} <span class="required-label">필수</span>`;
     el.destination.placeholder = isInternational ? '국가를 검색하거나 직접 입력' : '지역을 검색하거나 직접 입력';
-    el.destinationOptions.replaceChildren(...(isInternational ? internationalPlaces : domesticPlaces).map(place => new Option(place, place)));
+    // 목적지는 select가 아닌 input이며, 제안 목록은 연결된 datalist에 option으로 채웁니다.
+    el.destinationOptions.replaceChildren();
+    (isInternational ? internationalPlaces : domesticPlaces).forEach(place => {
+      const option = document.createElement('option');
+      option.value = place;
+      el.destinationOptions.append(option);
+    });
     el.transportField.hidden = isInternational;
     if (!isInternational && !$('#transport').value) $('#transport').value = '기타';
   }
