@@ -3,6 +3,7 @@
 
   const STORAGE_KEY = 'packmate.trips.v1';
   const ESSENTIALS_KEY = 'packmate.essentials.v1';
+  const DRAFT_KEY = 'packmate.draft.v1';
   const domesticPlaces = ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종', '제주도', '강릉', '속초', '춘천', '원주', '동해', '삼척', '평창', '정선', '양양', '청주', '충주', '제천', '천안', '공주', '보령', '아산', '서산', '당진', '전주', '군산', '익산', '남원', '목포', '여수', '순천', '광양', '나주', '경주', '포항', '안동', '구미', '경산', '김천', '문경', '창원', '김해', '진주', '거제', '통영', '양산', '남해', '수원', '성남', '고양', '용인', '화성', '평택', '안산', '안양', '파주', '의정부', '이천', '가평', '양평', '인제', '태안', '기타'];
   const internationalPlaces = ['일본', '필리핀', '미국'];
   const knownActivities = ['수영', '등산', '캠핑', '야외활동'];
@@ -26,6 +27,7 @@
   let editingTripId = null;
   let customActivityNames = [];
   let toastTimer;
+  let draftStorageWarningShown = false;
 
   function loadTrips() {
     try {
@@ -70,7 +72,7 @@
   }
   function persist() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(trips)); return true; }
-    catch (error) { console.warn('PACKMATE 저장 데이터를 기록하지 못했습니다.', error); showToast('브라우저 저장 공간에 기록하지 못했어요. 설정을 확인해 주세요.'); return false; }
+    catch (error) { console.warn('PACKMATE 저장 데이터를 기록하지 못했습니다.', error); showToast('일정을 저장하지 못했어요. 브라우저 저장 공간과 권한을 확인한 뒤 다시 시도해 주세요.'); return false; }
   }
   function persistEssentials() {
     try { localStorage.setItem(ESSENTIALS_KEY, JSON.stringify(essentials)); return true; }
@@ -79,19 +81,63 @@
   function makeId() { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`; }
   function escapeHTML(value) { return String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]); }
   function showToast(message) { el.toast.textContent = message; el.toast.classList.add('is-visible'); window.clearTimeout(toastTimer); toastTimer = window.setTimeout(() => el.toast.classList.remove('is-visible'), 2800); }
-  function showView(viewName) { el.homeView.hidden = viewName !== 'home'; el.formView.hidden = viewName !== 'form'; el.checklistView.hidden = viewName !== 'checklist'; window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+  function routeForView(viewName) {
+    if (viewName === 'form') return { view: 'form', editTripId: editingTripId || null, type: el.typeInput.value === 'international' ? 'international' : 'domestic', category: purposeOptions[$('#purposeCategory').value] ? $('#purposeCategory').value : 'travel' };
+    if (viewName === 'checklist') return { view: 'checklist', tripId: activeTripId };
+    return { view: 'home' };
+  }
+  function routeEquals(left, right) { return Boolean(left && right && left.view === right.view && (left.view !== 'form' || (left.editTripId || null) === (right.editTripId || null)) && (left.view !== 'checklist' || left.tripId === right.tripId)); }
+  function writeRoute(route, replace = false) {
+    try {
+      const prior = history.state && typeof history.state === 'object' && !Array.isArray(history.state) ? history.state : {};
+      const state = { ...prior, packmateRoute: route };
+      if (replace) history.replaceState(state, '', location.href); else history.pushState(state, '', location.href);
+      return true;
+    } catch (error) { console.warn('브라우저 화면 기록을 갱신하지 못했습니다.', error); return false; }
+  }
+  function showView(viewName, options = {}) {
+    const route = routeForView(viewName);
+    const current = history.state && history.state.packmateRoute;
+    if (!options.noPush && !routeEquals(current, route)) writeRoute(route);
+    el.homeView.hidden = viewName !== 'home'; el.formView.hidden = viewName !== 'form'; el.checklistView.hidden = viewName !== 'checklist';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function renderRoute(route, replaceInvalid = true) {
+    if (!route || !['home', 'form', 'checklist'].includes(route.view)) route = { view: 'home' };
+    updateHome();
+    if (route.view === 'form') {
+      const trip = route.editTripId ? trips.find(item => item.id === route.editTripId) : null;
+      if (route.editTripId && !trip) { showView('home', { noPush: true }); if (replaceInvalid) writeRoute({ view: 'home' }, true); return; }
+      openForm(route.type === 'international' ? 'international' : 'domestic', purposeOptions[route.category] ? route.category : 'travel', trip, { noPush: true });
+      return;
+    }
+    if (route.view === 'checklist') {
+      if (route.tripId && trips.some(item => item.id === route.tripId)) { openTrip(route.tripId, { noPush: true }); return; }
+      showView('home', { noPush: true }); if (replaceInvalid) writeRoute({ view: 'home' }, true); return;
+    }
+    editingTripId = null; showView('home', { noPush: true });
+  }
+  function initializeNavigation() {
+    window.addEventListener('popstate', event => {
+      const route = event.state && event.state.packmateRoute;
+      if (!route) { renderRoute({ view: 'home' }); writeRoute({ view: 'home' }, true); return; }
+      renderRoute(route);
+    });
+    const route = history.state && history.state.packmateRoute;
+    if (route && ['home', 'form', 'checklist'].includes(route.view)) renderRoute(route);
+    else { updateHome(); editingTripId = null; showView('home', { noPush: true }); writeRoute({ view: 'home' }, true); }
+  }
+
   function setTripType(type) {
     const isInternational = type === 'international';
     el.typeInput.value = isInternational ? 'international' : 'domestic';
     $$('[data-trip-type]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.tripType === el.typeInput.value)));
     el.destinationLabel.innerHTML = `${isInternational ? '해외 국가' : '국내 지역'} <span class="required-label">필수</span>`;
     el.destination.placeholder = isInternational ? '국가를 검색하거나 직접 입력' : '지역을 검색하거나 직접 입력';
-    // 목적지는 select가 아닌 input이며, 제안 목록은 연결된 datalist에 option으로 채웁니다.
     el.destinationOptions.replaceChildren();
     (isInternational ? internationalPlaces : domesticPlaces).forEach(place => {
-      const option = document.createElement('option');
-      option.value = place;
-      el.destinationOptions.append(option);
+      const option = document.createElement('option'); option.value = place; el.destinationOptions.append(option);
     });
     el.transportField.hidden = isInternational;
     if (!isInternational && !$('#transport').value) $('#transport').value = '기타';
@@ -107,7 +153,58 @@
     customActivityNames = normalized.filter(value => !knownActivities.some(known => known.toLocaleLowerCase() === value.toLocaleLowerCase()));
     renderCustomActivities();
   }
-  function openForm(type = 'domestic', category = 'travel', trip = null) {
+  function readDraft() {
+    try {
+      const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+      return draft && draft.version === 1 && draft.fields && typeof draft.fields === 'object' ? draft : null;
+    } catch (error) { console.warn('작성 중인 일정을 읽지 못했습니다.', error); return null; }
+  }
+  function saveDraft() {
+    if (el.formView.hidden) return false;
+    const formData = new FormData(el.form);
+    const draft = {
+      version: 1,
+      editingTripId: editingTripId || null,
+      savedAt: Date.now(),
+      fields: {
+        name: String(formData.get('tripName') || ''),
+        category: String(formData.get('purposeCategory') || 'travel'),
+        subPurpose: String(formData.get('subPurpose') || ''),
+        type: String(formData.get('tripType') || 'domestic'),
+        destination: String(formData.get('destination') || ''),
+        transport: String(formData.get('transport') || '기타'),
+        duration: String(formData.get('duration') || '0'),
+        lodging: String(formData.get('lodging') || 'no'),
+        startDate: String(formData.get('startDate') || ''),
+        activities: [...new Set(formData.getAll('activities').map(value => String(value).trim()).filter(Boolean))]
+      }
+    };
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); draftStorageWarningShown = false; return true; }
+    catch (error) {
+      console.warn('작성 중인 일정을 임시 저장하지 못했습니다.', error);
+      if (!draftStorageWarningShown) { showToast('작성 내용을 임시 저장하지 못했어요. 브라우저 저장 공간과 권한을 확인해 주세요.'); draftStorageWarningShown = true; }
+      return false;
+    }
+  }
+  function clearDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); return true; }
+    catch (error) { console.warn('임시 일정을 정리하지 못했습니다.', error); showToast('일정은 저장했지만 임시 초안을 정리하지 못했어요.'); return false; }
+  }
+  function applyDraft(draft) {
+    const fields = draft.fields;
+    const category = purposeOptions[fields.category] ? fields.category : 'travel';
+    setPurposeCategory(category, fields.subPurpose);
+    setTripType(fields.type === 'international' ? 'international' : 'domestic');
+    $('#tripName').value = String(fields.name || '');
+    el.destination.value = String(fields.destination || '');
+    $('#transport').value = String(fields.transport || '기타');
+    el.duration.value = String(fields.duration || '0');
+    el.lodging.value = fields.lodging === 'yes' && Number(el.duration.value) > 0 ? 'yes' : 'no';
+    if (el.lodging.value === 'no') el.duration.value = '0';
+    el.startDate.value = String(fields.startDate || '');
+    setActivitySelection(Array.isArray(fields.activities) ? fields.activities : []);
+  }
+  function openForm(type = 'domestic', category = 'travel', trip = null, options = {}) {
     el.form.reset(); el.formError.hidden = true; el.formError.textContent = '';
     editingTripId = trip ? trip.id : null;
     const selectedCategory = trip ? (trip.purposeCategory || purposeFromLegacy(trip.purpose || '관광').category) : (purposeOptions[category] ? category : 'travel');
@@ -115,28 +212,22 @@
     setPurposeCategory(selectedCategory, trip ? (trip.subPurpose || trip.purpose) : undefined);
     setTripType(trip ? trip.type : type);
     if (trip) {
-      $('#tripName').value = trip.name;
-      el.destination.value = trip.destination || '';
-      $('#transport').value = trip.transport || '기타';
-      el.duration.value = String(trip.lodging === false ? 0 : (trip.duration ?? 0));
-      el.lodging.value = trip.lodging === false || Number(el.duration.value) === 0 ? 'no' : 'yes';
-      el.startDate.value = trip.startDate || '';
-      setActivitySelection(Array.isArray(trip.activities) ? trip.activities : []);
-      $('#formTitle').textContent = '일정 정보를 수정할까요?';
-      el.formSubmitButton.innerHTML = '변경 내용 저장 <span class="button-arrow" aria-hidden="true">↗</span>';
+      $('#tripName').value = trip.name; el.destination.value = trip.destination || ''; $('#transport').value = trip.transport || '기타';
+      el.duration.value = String(trip.lodging === false ? 0 : (trip.duration ?? 0)); el.lodging.value = trip.lodging === false || Number(el.duration.value) === 0 ? 'no' : 'yes';
+      el.startDate.value = trip.startDate || ''; setActivitySelection(Array.isArray(trip.activities) ? trip.activities : []);
+      $('#formTitle').textContent = '일정 정보를 수정할까요?'; el.formSubmitButton.innerHTML = '변경 내용 저장 <span class="button-arrow" aria-hidden="true">↗</span>';
     } else {
       el.duration.value = '2'; el.lodging.value = 'yes'; el.startDate.value = ''; setActivitySelection([]);
-      $('#formTitle').textContent = '어떤 일정을 준비할까요?';
-      el.formSubmitButton.innerHTML = '준비 목록 만들기 <span class="button-arrow" aria-hidden="true">↗</span>';
+      $('#formTitle').textContent = '어떤 일정을 준비할까요?'; el.formSubmitButton.innerHTML = '준비 목록 만들기 <span class="button-arrow" aria-hidden="true">↗</span>';
     }
-    updateEndDate(); showView('form'); $('#tripName').focus({ preventScroll: true });
+    const draft = readDraft();
+    if (draft && (draft.editingTripId || null) === (editingTripId || null)) applyDraft(draft);
+    updateEndDate(); showView('form', options); saveDraft(); $('#tripName').focus({ preventScroll: true });
   }
   function calculateEndDate(startDate, duration, lodging) {
     if (!startDate) return '';
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(startDate);
-    if (!match) return '';
-    const [, year, month, day] = match.map(Number);
-    const nights = lodging ? Math.max(0, Number(duration) || 0) : 0;
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(startDate); if (!match) return '';
+    const [, year, month, day] = match.map(Number); const nights = lodging ? Math.max(0, Number(duration) || 0) : 0;
     const utcDate = new Date(Date.UTC(year, month - 1, day + nights));
     return `${utcDate.getUTCFullYear()}-${String(utcDate.getUTCMonth() + 1).padStart(2, '0')}-${String(utcDate.getUTCDate()).padStart(2, '0')}`;
   }
@@ -149,8 +240,7 @@
     trips.slice().sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0)).forEach(trip => {
       const packing = progress(trip.packing), tasks = progress(trip.tasks), total = packing.total + tasks.total;
       const percent = total ? Math.round((packing.done + tasks.done) / total * 100) : 0;
-      const article = document.createElement('article'); article.className = 'saved-trip-card';
-      const destination = trip.destination || trip.name;
+      const article = document.createElement('article'); article.className = 'saved-trip-card'; const destination = trip.destination || trip.name;
       article.innerHTML = `<div class="saved-trip-top"><span class="saved-trip-type ${trip.type === 'international' ? 'is-international' : ''}"><span class="saved-trip-symbol" aria-hidden="true">${trip.type === 'international' ? '◎' : '⌂'}</span>${escapeHTML(categoryLabel(trip))} · ${trip.type === 'international' ? '해외' : '국내'}</span><button class="trip-delete-mini" type="button" data-delete-trip="${escapeHTML(trip.id)}" aria-label="${escapeHTML(trip.name)} 삭제" title="일정 삭제"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg></button></div><button class="saved-trip-open" type="button" data-open-trip="${escapeHTML(trip.id)}" aria-label="${escapeHTML(trip.name)} 준비 현황 열기"><strong>${escapeHTML(trip.name)}</strong><span class="saved-trip-destination">${escapeHTML(destination)} · ${escapeHTML(trip.subPurpose || trip.purpose || '관광')} · ${escapeHTML(durationLabel(trip))}</span><span class="saved-trip-footer"><span>${packing.done}/${packing.total} 준비물 · ${tasks.done}/${tasks.total} 할 일</span><span class="saved-trip-progress"><span class="tiny-progress"><span style="width:${percent}%"></span></span>${percent}%</span></span></button>`;
       el.savedTrips.append(article);
     });
@@ -204,23 +294,15 @@
       if (data.activities.includes('캠핑')) { packing.push(addPackingItem('캠핑 장비')); tasks.push(addTask('캠핑장 예약과 이용 안내 확인')); }
       if (data.activities.includes('야외활동')) packing.push(addPackingItem('모자·자외선 차단용품'));
     }
-    if (data.startDate) tasks.push(addTask('시작일 일정 확인', data.startDate));
-    if (data.endDate) tasks.push(addTask('종료일·귀가 일정 확인', data.endDate));
+    if (data.startDate) tasks.push(addTask('시작일 일정 확인', data.startDate)); if (data.endDate) tasks.push(addTask('종료일·귀가 일정 확인', data.endDate));
     const previousMisses = new Map();
-    trips.forEach(trip => (trip.missedItems || []).filter(Boolean).forEach(item => {
-      if (data.type === 'domestic' && isInternationalDocument(item.name)) return;
-      previousMisses.set(item.name.toLocaleLowerCase(), item.name);
-    }));
+    trips.forEach(trip => (trip.missedItems || []).filter(Boolean).forEach(item => { if (data.type === 'domestic' && isInternationalDocument(item.name)) return; previousMisses.set(item.name.toLocaleLowerCase(), item.name); }));
     previousMisses.forEach(name => { if (!packing.some(item => item.name.toLocaleLowerCase() === name.toLocaleLowerCase())) packing.push(addPackingItem(name, '지난 일정에서 누락 기록이 있어요. 이번에는 직접 확인해 주세요.', false, 'missed')); });
-    essentials.forEach(item => {
-      if (data.type === 'domestic' && isInternationalDocument(item.name)) return;
-      if (!packing.some(entry => entry.name.toLocaleLowerCase() === item.name.toLocaleLowerCase())) packing.push(addPackingItem(item.name, '개인 필수품 · 다음 일정 재사용', true, 'essential'));
-    });
+    essentials.forEach(item => { if (data.type === 'domestic' && isInternationalDocument(item.name)) return; if (!packing.some(entry => entry.name.toLocaleLowerCase() === item.name.toLocaleLowerCase())) packing.push(addPackingItem(item.name, '개인 필수품 · 다음 일정 재사용', true, 'essential')); });
     return { packing: uniqueByName(packing), tasks: uniqueByName(tasks) };
   }
   function uniqueByName(items) {
-    const seen = new Set();
-    return items.filter(item => { const key = item.name.trim().toLocaleLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; });
+    const seen = new Set(); return items.filter(item => { const key = item.name.trim().toLocaleLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; });
   }
   function preserveChecklistState(generated, previous, preserveCustom = false) {
     const unused = previous.slice();
@@ -235,14 +317,10 @@
   }
   function handleCreateTrip(event) {
     event.preventDefault(); el.formError.hidden = true; const formData = new FormData(el.form);
-    const type = String(formData.get('tripType') || 'domestic'); const destination = String(formData.get('destination') || '').trim();
-    const name = String(formData.get('tripName') || '').trim();
-    if (!name) return showFormError('일정 이름을 입력해 주세요.');
-    if (!destination) return showFormError('이동 지역 또는 국가를 입력해 주세요.');
-    const duration = String(formData.get('duration') || '0');
-    const lodging = formData.get('lodging') === 'yes' && Number(duration) > 0;
-    const activities = [...new Set(formData.getAll('activities').map(value => String(value).trim()).filter(Boolean))];
-    const now = Date.now();
+    const type = String(formData.get('tripType') || 'domestic'); const destination = String(formData.get('destination') || '').trim(); const name = String(formData.get('tripName') || '').trim();
+    if (!name) return showFormError('일정 이름을 입력해 주세요.'); if (!destination) return showFormError('이동 지역 또는 국가를 입력해 주세요.');
+    const duration = String(formData.get('duration') || '0'); const lodging = formData.get('lodging') === 'yes' && Number(duration) > 0;
+    const activities = [...new Set(formData.getAll('activities').map(value => String(value).trim()).filter(Boolean))]; const now = Date.now();
     const existing = editingTripId ? trips.find(item => item.id === editingTripId) : null;
     const data = {
       ...(existing || {}), id: existing ? existing.id : makeId(), type, name, destination,
@@ -252,12 +330,11 @@
       createdAt: existing ? existing.createdAt : now, updatedAt: now, missedItems: existing ? (existing.missedItems || []) : []
     };
     const generated = buildChecklist(data);
-    const trip = existing
-      ? { ...data, packing: preserveChecklistState(generated.packing, existing.packing || [], true), tasks: preserveChecklistState(generated.tasks, existing.tasks || []) }
-      : { ...data, ...generated };
-    if (existing) trips = trips.map(item => item.id === existing.id ? trip : item); else trips.push(trip);
-    persist(); editingTripId = null; updateHome(); openTrip(trip.id);
-    showToast(existing ? '일정과 체크 상태를 보존해 수정했어요.' : '새 일정을 저장했어요.');
+    const trip = existing ? { ...data, packing: preserveChecklistState(generated.packing, existing.packing || [], true), tasks: preserveChecklistState(generated.tasks, existing.tasks || []) } : { ...data, ...generated };
+    const previousTrips = trips;
+    trips = existing ? trips.map(item => item.id === existing.id ? trip : item) : [...trips, trip];
+    if (!persist()) { trips = previousTrips; return; }
+    clearDraft(); editingTripId = null; updateHome(); openTrip(trip.id); showToast(existing ? '일정과 체크 상태를 보존해 수정했어요.' : '새 일정을 저장했어요.');
   }
   function showFormError(message) { el.formError.textContent = message; el.formError.hidden = false; el.formError.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   function renderCustomActivities() {
@@ -277,21 +354,18 @@
     if (name.length > 40) { showToast('활동명은 40자 이내로 입력해 주세요.'); return; }
     const all = [...knownActivities, ...customActivityNames];
     if (all.some(value => value.toLocaleLowerCase() === name.toLocaleLowerCase())) { showToast('이미 선택되거나 등록된 활동이에요.'); return; }
-    customActivityNames.push(name); input.value = ''; renderCustomActivities(); showToast('추가 활동을 등록했어요.');
+    customActivityNames.push(name); input.value = ''; renderCustomActivities(); saveDraft(); showToast('추가 활동을 등록했어요.');
   }
   function handleCustomActivityAction(event) {
-    const edit = event.target.closest('[data-edit-activity]'); const remove = event.target.closest('[data-remove-activity]');
-    if (!edit && !remove) return;
-    const index = Number((edit || remove).dataset[edit ? 'editActivity' : 'removeActivity']);
-    if (!Number.isInteger(index) || index < 0 || index >= customActivityNames.length) return;
+    const edit = event.target.closest('[data-edit-activity]'); const remove = event.target.closest('[data-remove-activity]'); if (!edit && !remove) return;
+    const index = Number((edit || remove).dataset[edit ? 'editActivity' : 'removeActivity']); if (!Number.isInteger(index) || index < 0 || index >= customActivityNames.length) return;
     if (edit) {
-      const oldName = customActivityNames[index]; const answer = window.prompt('활동명을 수정해 주세요.', oldName);
-      if (answer === null) return; const next = answer.trim();
+      const oldName = customActivityNames[index]; const answer = window.prompt('활동명을 수정해 주세요.', oldName); if (answer === null) return; const next = answer.trim();
       if (!next || next.length > 40) { showToast('활동명은 1~40자로 입력해 주세요.'); return; }
       if ([...knownActivities, ...customActivityNames.filter((_, i) => i !== index)].some(value => value.toLocaleLowerCase() === next.toLocaleLowerCase())) { showToast('같은 이름의 활동이 이미 있어요.'); return; }
       customActivityNames[index] = next; showToast('활동명을 수정했어요.');
     } else { customActivityNames.splice(index, 1); showToast('직접 등록한 활동을 삭제했어요.'); }
-    renderCustomActivities();
+    renderCustomActivities(); saveDraft();
   }
   function renderItems(container, items, kind) {
     container.replaceChildren();
@@ -305,20 +379,19 @@
         const controls = document.createElement('div'); controls.className = 'packing-controls';
         const missed = document.createElement('button'); missed.type = 'button'; missed.className = 'missed-button'; missed.dataset.markMissed = item.id; missed.textContent = '누락 기록'; missed.title = '이번 일정에서 빠뜨린 경우 기록'; controls.append(missed);
         const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'item-action-button'; edit.dataset.editItem = item.id; edit.textContent = '✎'; edit.title = '준비물 수정'; edit.setAttribute('aria-label', `${item.name} 수정`); controls.append(edit);
-        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'item-action-button item-remove-button'; remove.dataset.deleteItem = item.id; remove.textContent = '×'; remove.title = '준비물 삭제'; remove.setAttribute('aria-label', `${item.name} 삭제`); controls.append(remove);
-        row.append(controls);
+        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'item-action-button item-remove-button'; remove.dataset.deleteItem = item.id; remove.textContent = '×'; remove.title = '준비물 삭제'; remove.setAttribute('aria-label', `${item.name} 삭제`); controls.append(remove); row.append(controls);
       }
       container.append(row);
     });
   }
-  function openTrip(id) {
+  function openTrip(id, options = {}) {
     const trip = trips.find(item => item.id === id); if (!trip) return; activeTripId = id;
     const metaParts = [trip.destination, categoryLabel(trip), trip.subPurpose || trip.purpose || '관광', durationLabel(trip)];
     if (trip.startDate) metaParts.push(trip.startDate); if (trip.endDate) metaParts.push(trip.endDate);
     if (trip.type !== 'international' && trip.transport) metaParts.push(trip.transport); if (Array.isArray(trip.activities) && trip.activities.length) metaParts.push(trip.activities.join(' · '));
     $('#checklistKicker').textContent = `${categoryLabel(trip)} · ${trip.type === 'international' ? '해외' : '국내'}`;
     el.title.textContent = trip.name; el.meta.textContent = metaParts.join(' · '); el.officialNote.hidden = trip.type !== 'international';
-    renderItems(el.packingItems, trip.packing, 'packing'); renderItems(el.taskItems, trip.tasks, 'task'); renderPersonalNotes(); renderMissedHistory(); updateProgress(); showView('checklist');
+    renderItems(el.packingItems, trip.packing, 'packing'); renderItems(el.taskItems, trip.tasks, 'task'); renderPersonalNotes(); renderMissedHistory(); updateProgress(); showView('checklist', options);
   }
   function updateProgress() {
     const trip = trips.find(item => item.id === activeTripId); if (!trip) return;
@@ -338,35 +411,25 @@
     item.done = input.checked; trip.updatedAt = Date.now(); persist(); renderItems(input.dataset.itemKind === 'task' ? el.taskItems : el.packingItems, list, input.dataset.itemKind); updateProgress(); updateHome();
   }
   function handlePackingAction(event) {
-    const editButton = event.target.closest('[data-edit-item]'); const deleteButton = event.target.closest('[data-delete-item]');
-    if ((!editButton && !deleteButton) || !activeTripId) return;
+    const editButton = event.target.closest('[data-edit-item]'); const deleteButton = event.target.closest('[data-delete-item]'); if ((!editButton && !deleteButton) || !activeTripId) return;
     const trip = trips.find(item => item.id === activeTripId); if (!trip) return;
     const id = (editButton || deleteButton).dataset[editButton ? 'editItem' : 'deleteItem']; const item = trip.packing.find(entry => entry.id === id); if (!item) return;
     if (editButton) {
-      const answer = window.prompt('준비물 이름을 수정해 주세요.', item.name);
-      if (answer === null) return; const name = answer.trim();
-      if (!name) { showToast('준비물 이름을 비워 둘 수 없어요.'); return; }
-      if (name.length > 60) { showToast('준비물 이름은 60자 이내로 입력해 주세요.'); return; }
-      item.name = name;
+      const answer = window.prompt('준비물 이름을 수정해 주세요.', item.name); if (answer === null) return; const name = answer.trim();
+      if (!name) { showToast('준비물 이름을 비워 둘 수 없어요.'); return; } if (name.length > 60) { showToast('준비물 이름은 60자 이내로 입력해 주세요.'); return; } item.name = name;
     } else {
-      if (!window.confirm(`“${item.name}” 준비물을 목록에서 삭제할까요?`)) return;
-      trip.packing = trip.packing.filter(entry => entry.id !== item.id);
+      if (!window.confirm(`“${item.name}” 준비물을 목록에서 삭제할까요?`)) return; trip.packing = trip.packing.filter(entry => entry.id !== item.id);
     }
-    trip.updatedAt = Date.now(); persist(); renderItems(el.packingItems, trip.packing, 'packing'); updateProgress(); updateHome();
-    showToast(editButton ? '준비물 이름을 수정했어요.' : '준비물을 삭제했어요.');
+    trip.updatedAt = Date.now(); persist(); renderItems(el.packingItems, trip.packing, 'packing'); updateProgress(); updateHome(); showToast(editButton ? '준비물 이름을 수정했어요.' : '준비물을 삭제했어요.');
   }
   function handleAddItem(event) {
-    event.preventDefault(); const name = el.newItemInput.value.trim();
-    if (!name || !activeTripId) { if (!name) showToast('추가할 준비물 이름을 입력해 주세요.'); return; }
-    const trip = trips.find(item => item.id === activeTripId); if (!trip) return;
-    trip.packing.push(addPackingItem(name, '이번 일정에서 직접 추가한 준비물', true));
+    event.preventDefault(); const name = el.newItemInput.value.trim(); if (!name || !activeTripId) { if (!name) showToast('추가할 준비물 이름을 입력해 주세요.'); return; }
+    const trip = trips.find(item => item.id === activeTripId); if (!trip) return; trip.packing.push(addPackingItem(name, '이번 일정에서 직접 추가한 준비물', true));
     if (el.saveAsEssential.checked && !essentials.some(item => item.name.toLocaleLowerCase() === name.toLocaleLowerCase())) { essentials.push({ id: makeId(), name }); persistEssentials(); }
-    trip.updatedAt = Date.now(); persist(); renderItems(el.packingItems, trip.packing, 'packing'); renderPersonalNotes(); updateProgress(); updateHome();
-    el.newItemInput.value = ''; el.saveAsEssential.checked = false; showToast('준비물을 목록에 추가했어요.');
+    trip.updatedAt = Date.now(); persist(); renderItems(el.packingItems, trip.packing, 'packing'); renderPersonalNotes(); updateProgress(); updateHome(); el.newItemInput.value = ''; el.saveAsEssential.checked = false; showToast('준비물을 목록에 추가했어요.');
   }
   function renderPersonalNotes() {
-    const note = $('#personalNote');
-    note.innerHTML = essentials.length ? `저장된 개인 필수품 ${essentials.length}개가 새 일정에 포함됩니다. <span class="essential-manage">${essentials.map(item => `<button type="button" data-remove-essential="${escapeHTML(item.id)}" title="개인 필수품 삭제: ${escapeHTML(item.name)}">${escapeHTML(item.name)} ×</button>`).join('')}</span>` : '개인 필수품은 ‘다음 일정에도 재사용’을 선택해 저장할 수 있어요.';
+    const note = $('#personalNote'); note.innerHTML = essentials.length ? `저장된 개인 필수품 ${essentials.length}개가 새 일정에 포함됩니다. <span class="essential-manage">${essentials.map(item => `<button type="button" data-remove-essential="${escapeHTML(item.id)}" title="개인 필수품 삭제: ${escapeHTML(item.name)}">${escapeHTML(item.name)} ×</button>`).join('')}</span>` : '개인 필수품은 ‘다음 일정에도 재사용’을 선택해 저장할 수 있어요.';
   }
   function renderMissedHistory() {
     const trip = trips.find(item => item.id === activeTripId); if (!trip) return; const items = (trip.missedItems || []).filter(Boolean);
@@ -385,12 +448,14 @@
 
   $('#newTripButton').addEventListener('click', () => openForm()); $('#savedNewTripButton').addEventListener('click', () => openForm());
   $$('[data-start-purpose]').forEach(button => button.addEventListener('click', () => openForm('domestic', button.dataset.startPurpose)));
-  $$('[data-trip-type]').forEach(button => button.addEventListener('click', () => { const oldDestination = el.destination.value; setTripType(button.dataset.tripType); if (button.dataset.tripType === el.typeInput.value) el.destination.value = oldDestination; }));
+  $$('[data-trip-type]').forEach(button => button.addEventListener('click', () => { const oldDestination = el.destination.value; setTripType(button.dataset.tripType); if (button.dataset.tripType === el.typeInput.value) el.destination.value = oldDestination; saveDraft(); }));
   $('#purposeCategory').addEventListener('change', event => setPurposeCategory(event.target.value));
   el.lodging.addEventListener('change', event => { if (event.target.value === 'no') el.duration.value = '0'; else if (el.duration.value === '0') el.duration.value = '1'; updateEndDate(); });
   el.duration.addEventListener('change', event => { if (event.target.value === '0') el.lodging.value = 'no'; else el.lodging.value = 'yes'; updateEndDate(); });
   el.startDate.addEventListener('change', updateEndDate); el.startDate.addEventListener('input', updateEndDate);
-  el.form.addEventListener('submit', handleCreateTrip); $('#formBackButton').addEventListener('click', () => { editingTripId = null; updateHome(); showView('home'); });
+  el.form.addEventListener('input', saveDraft); el.form.addEventListener('change', saveDraft);
+  el.form.addEventListener('submit', handleCreateTrip);
+  $('#formBackButton').addEventListener('click', () => { clearDraft(); editingTripId = null; updateHome(); showView('home'); });
   $('#checklistBackButton').addEventListener('click', () => { updateHome(); showView('home'); }); $('#topHomeButton').addEventListener('click', () => { updateHome(); showView('home'); });
   $('#homeLink').addEventListener('click', event => { event.preventDefault(); updateHome(); showView('home'); }); $('#deleteTripButton').addEventListener('click', () => { if (activeTripId) deleteTrip(activeTripId); });
   $('#editTripButton').addEventListener('click', () => { const trip = trips.find(item => item.id === activeTripId); if (trip) openForm(trip.type, trip.purposeCategory, trip); });
@@ -408,5 +473,6 @@
     if (!item || !window.confirm(`개인 필수품 “${item.name}”을 삭제할까요?`)) return;
     essentials = essentials.filter(entry => entry.id !== item.id); persistEssentials(); renderPersonalNotes(); showToast('개인 필수품을 삭제했어요. 새 일정부터 반영됩니다.');
   });
-  el.addItemForm.addEventListener('submit', handleAddItem); updateHome();
+  el.addItemForm.addEventListener('submit', handleAddItem);
+  initializeNavigation();
 })();

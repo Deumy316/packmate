@@ -13,4 +13,5 @@
 .checklist-header-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
 .edit-trip-button{min-height:40px;padding:0 13px;font-size:12px}
 .title-with-actions{width:100%;justify-content:space-between}
+.type-toggle .option-symbol{display:block;flex:0 0 20px;width:20px;height:20px;font-size:initial}
 @media(max-width:600px){.activity-add-row{align-items:stretch;flex-direction:column}.activity-add-button{width:100%}.checklist-header-actions{align-self:flex-start}.edit-trip-button{min-height:39px}.custom-activity-chip{min-height:38px}}
