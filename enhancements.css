@@ -1,0 +1,16 @@
+/* 1차 사용자 피드백: 기존 화면 체계에 일정 입력 개선만 덧붙임 */
+.button-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 15px;border:1px solid #99C4D5;border-radius:12px;background:#EEF7FA;color:#2D3137;font-weight:700;cursor:pointer;transition:background .18s,border-color .18s,transform .18s}
+.button-secondary:hover{background:#E1F0F5;border-color:#4F859A;transform:translateY(-1px)}
+.button-secondary:active{background:#D4E9F0;transform:translateY(0)}
+.button-secondary:focus-visible{outline:3px solid rgba(79,133,154,.42);outline-offset:3px}
+.activity-add-row{display:flex;gap:9px;margin-top:13px}
+.activity-add-row input{flex:1;min-width:0;height:44px;padding:0 13px;border:1px solid #DDDFE6;border-radius:12px;background:#fff;color:#2D3137}
+.activity-add-row input:focus{border-color:#99C4D5;outline:none;box-shadow:0 0 0 3px rgba(153,196,213,.2)}
+.custom-activity-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+.custom-activity-chip{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:3px 5px 3px 12px;border:1px solid #C8DDE5;border-radius:999px;background:#F5FAFC;color:#3E7185;font-size:12px}
+.custom-activity-chip button{display:inline-grid;place-items:center;width:27px;height:27px;border:0;border-radius:50%;background:transparent;color:#696BAC;font-size:15px;cursor:pointer}
+.custom-activity-chip button:hover{background:#E7EAF7}
+.checklist-header-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.edit-trip-button{min-height:40px;padding:0 13px;font-size:12px}
+.title-with-actions{width:100%;justify-content:space-between}
+@media(max-width:600px){.activity-add-row{align-items:stretch;flex-direction:column}.activity-add-button{width:100%}.checklist-header-actions{align-self:flex-start}.edit-trip-button{min-height:39px}.custom-activity-chip{min-height:38px}}

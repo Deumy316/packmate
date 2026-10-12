@@ -3,23 +3,28 @@
 
   const STORAGE_KEY = 'packmate.trips.v1';
   const ESSENTIALS_KEY = 'packmate.essentials.v1';
-  const domesticPlaces = ['서울', '제주도', '부산', '강릉', '여수', '경주', '대전', '기타'];
+  const domesticPlaces = ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종', '제주도', '강릉', '속초', '춘천', '원주', '동해', '삼척', '평창', '정선', '양양', '청주', '충주', '제천', '천안', '공주', '보령', '아산', '서산', '당진', '전주', '군산', '익산', '남원', '목포', '여수', '순천', '광양', '나주', '경주', '포항', '안동', '구미', '경산', '김천', '문경', '창원', '김해', '진주', '거제', '통영', '양산', '남해', '수원', '성남', '고양', '용인', '화성', '평택', '안산', '안양', '파주', '의정부', '이천', '가평', '양평', '인제', '태안', '기타'];
   const internationalPlaces = ['일본', '필리핀', '미국'];
+  const knownActivities = ['수영', '등산', '캠핑', '야외활동'];
   const purposeOptions = { travel: ['관광', '휴식', '레저'], business: ['회의', '고객사 방문', '현장 작업', '일반 출장'], education: ['교육', '세미나', '컨퍼런스'], personal: ['가족 방문', '경조사', '면접', '기타'] };
   const purposeLabels = { travel: '여행·휴가', business: '출장·업무', education: '교육·행사', personal: '방문·개인 일정' };
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const el = {
     homeView: $('#homeView'), formView: $('#formView'), checklistView: $('#checklistView'), form: $('#tripForm'),
-    typeInput: $('#tripTypeInput'), destination: $('#destination'), destinationLabel: $('#destinationLabel'), customField: $('#customDestinationField'), customDestination: $('#customDestination'), transportField: $('#transportField'),
+    typeInput: $('#tripTypeInput'), destination: $('#destination'), destinationOptions: $('#destinationOptions'), destinationLabel: $('#destinationLabel'), transportField: $('#transportField'),
     formError: $('#formError'), savedTrips: $('#savedTrips'), emptyTrips: $('#emptyTrips'), tripCount: $('#tripCount'), title: $('#checklistTitle'), meta: $('#tripMeta'), packingItems: $('#packingItems'), taskItems: $('#taskItems'),
     packingProgressText: $('#packingProgressText'), packingProgressBar: $('#packingProgressBar'), packingProgressCount: $('#packingProgressCount'), taskProgressText: $('#taskProgressText'), taskProgressBar: $('#taskProgressBar'), taskProgressCount: $('#taskProgressCount'),
     packingItemCount: $('#packingItemCount'), taskItemCount: $('#taskItemCount'), officialNote: $('#officialNote'), addItemForm: $('#addItemForm'), newItemInput: $('#newItemInput'), saveAsEssential: $('#saveAsEssential'),
-    preflightSummary: $('#preflightSummary'), missedHistory: $('#missedHistory'), subPurpose: $('#subPurpose'), toast: $('#toast')
+    preflightSummary: $('#preflightSummary'), missedHistory: $('#missedHistory'), subPurpose: $('#subPurpose'), toast: $('#toast'), customActivityList: $('#customActivityList'),
+    startDate: $('#startDate'), endDate: $('#endDate'), duration: $('#duration'), lodging: $('#lodging'),
+    formTitle: $('#formTitle'), formSubmitButton: $('#formSubmitButton')
   };
   let trips = loadTrips();
   let essentials = loadEssentials();
   let activeTripId = null;
+  let editingTripId = null;
+  let customActivityNames = [];
   let toastTimer;
 
   function loadTrips() {
@@ -80,20 +85,56 @@
     el.typeInput.value = isInternational ? 'international' : 'domestic';
     $$('[data-trip-type]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.tripType === el.typeInput.value)));
     el.destinationLabel.innerHTML = `${isInternational ? '해외 국가' : '국내 지역'} <span class="required-label">필수</span>`;
-    el.destination.replaceChildren(new Option(isInternational ? '국가를 선택해 주세요' : '지역을 선택해 주세요', ''));
-    (isInternational ? internationalPlaces : domesticPlaces).forEach(place => el.destination.add(new Option(place, place)));
-    el.transportField.hidden = isInternational; el.customField.hidden = true; el.customDestination.required = false; el.customDestination.value = '';
+    el.destination.placeholder = isInternational ? '국가를 검색하거나 직접 입력' : '지역을 검색하거나 직접 입력';
+    el.destinationOptions.replaceChildren(...(isInternational ? internationalPlaces : domesticPlaces).map(place => new Option(place, place)));
+    el.transportField.hidden = isInternational;
+    if (!isInternational && !$('#transport').value) $('#transport').value = '기타';
   }
   function setPurposeCategory(category, preferredSub) {
     const options = purposeOptions[category] || purposeOptions.travel; const prior = preferredSub || el.subPurpose.value;
     el.subPurpose.replaceChildren(...options.map(option => new Option(option, option)));
     if (options.includes(prior)) el.subPurpose.value = prior;
   }
-  function openForm(type = 'domestic', category = 'travel') {
-    el.form.reset(); el.formError.hidden = true; el.formError.textContent = '';
-    $('#purposeCategory').value = purposeOptions[category] ? category : 'travel'; setPurposeCategory($('#purposeCategory').value); setTripType(type);
-    $('#lodging').value = 'yes'; showView('form'); $('#tripName').focus({ preventScroll: true });
+  function setActivitySelection(values = []) {
+    const normalized = [...new Set(values.map(value => String(value).trim()).filter(Boolean))];
+    $$('input[name="activities"]').forEach(input => { input.checked = normalized.some(value => value.toLocaleLowerCase() === input.value.toLocaleLowerCase()); });
+    customActivityNames = normalized.filter(value => !knownActivities.some(known => known.toLocaleLowerCase() === value.toLocaleLowerCase()));
+    renderCustomActivities();
   }
+  function openForm(type = 'domestic', category = 'travel', trip = null) {
+    el.form.reset(); el.formError.hidden = true; el.formError.textContent = '';
+    editingTripId = trip ? trip.id : null;
+    const selectedCategory = trip ? (trip.purposeCategory || purposeFromLegacy(trip.purpose || '관광').category) : (purposeOptions[category] ? category : 'travel');
+    $('#purposeCategory').value = selectedCategory;
+    setPurposeCategory(selectedCategory, trip ? (trip.subPurpose || trip.purpose) : undefined);
+    setTripType(trip ? trip.type : type);
+    if (trip) {
+      $('#tripName').value = trip.name;
+      el.destination.value = trip.destination || '';
+      $('#transport').value = trip.transport || '기타';
+      el.duration.value = String(trip.lodging === false ? 0 : (trip.duration ?? 0));
+      el.lodging.value = trip.lodging === false || Number(el.duration.value) === 0 ? 'no' : 'yes';
+      el.startDate.value = trip.startDate || '';
+      setActivitySelection(Array.isArray(trip.activities) ? trip.activities : []);
+      $('#formTitle').textContent = '일정 정보를 수정할까요?';
+      el.formSubmitButton.innerHTML = '변경 내용 저장 <span class="button-arrow" aria-hidden="true">↗</span>';
+    } else {
+      el.duration.value = '2'; el.lodging.value = 'yes'; el.startDate.value = ''; setActivitySelection([]);
+      $('#formTitle').textContent = '어떤 일정을 준비할까요?';
+      el.formSubmitButton.innerHTML = '준비 목록 만들기 <span class="button-arrow" aria-hidden="true">↗</span>';
+    }
+    updateEndDate(); showView('form'); $('#tripName').focus({ preventScroll: true });
+  }
+  function calculateEndDate(startDate, duration, lodging) {
+    if (!startDate) return '';
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(startDate);
+    if (!match) return '';
+    const [, year, month, day] = match.map(Number);
+    const nights = lodging ? Math.max(0, Number(duration) || 0) : 0;
+    const utcDate = new Date(Date.UTC(year, month - 1, day + nights));
+    return `${utcDate.getUTCFullYear()}-${String(utcDate.getUTCMonth() + 1).padStart(2, '0')}-${String(utcDate.getUTCDate()).padStart(2, '0')}`;
+  }
+  function updateEndDate() { el.endDate.value = calculateEndDate(el.startDate.value, el.duration.value, el.lodging.value === 'yes'); }
   function progress(items) { const total = items.length; const done = items.filter(item => item.done).length; return { total, done, percent: total ? Math.round(done / total * 100) : 0 }; }
   function durationLabel(trip) { if (Number(trip.duration) === 0 || trip.lodging === false) return '당일'; return `${trip.duration}박 ${Number(trip.duration) + 1}일`; }
   function categoryLabel(trip) { const legacy = purposeFromLegacy(trip.purpose || '관광'); return purposeLabels[trip.purposeCategory] || purposeLabels[legacy.category] || '여행·휴가'; }
@@ -169,26 +210,83 @@
       if (data.type === 'domestic' && isInternationalDocument(item.name)) return;
       if (!packing.some(entry => entry.name.toLocaleLowerCase() === item.name.toLocaleLowerCase())) packing.push(addPackingItem(item.name, '개인 필수품 · 다음 일정 재사용', true, 'essential'));
     });
-    return { packing, tasks };
+    return { packing: uniqueByName(packing), tasks: uniqueByName(tasks) };
   }
-
+  function uniqueByName(items) {
+    const seen = new Set();
+    return items.filter(item => { const key = item.name.trim().toLocaleLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; });
+  }
+  function preserveChecklistState(generated, previous, preserveCustom = false) {
+    const unused = previous.slice();
+    const merged = generated.map(item => {
+      const index = unused.findIndex(old => old.name.trim().toLocaleLowerCase() === item.name.trim().toLocaleLowerCase());
+      if (index < 0) return item;
+      const [old] = unused.splice(index, 1);
+      return { ...item, id: old.id || item.id, done: Boolean(old.done), ...(old.custom ? { custom: true } : {}), ...(old.source ? { source: old.source } : {}) };
+    });
+    if (preserveCustom) unused.filter(item => item.custom).forEach(item => merged.push(item));
+    return uniqueByName(merged);
+  }
   function handleCreateTrip(event) {
     event.preventDefault(); el.formError.hidden = true; const formData = new FormData(el.form);
-    const type = String(formData.get('tripType') || 'domestic'); const selectedDestination = String(formData.get('destination') || ''); const customDestination = String(formData.get('customDestination') || '').trim();
-    if (!String(formData.get('tripName') || '').trim()) return showFormError('일정 이름을 입력해 주세요.');
-    if (!selectedDestination) return showFormError('이동 지역 또는 국가를 선택해 주세요.');
-    if (selectedDestination === '기타' && !customDestination) return showFormError('지역 또는 목적지 이름을 입력해 주세요.');
-    const destination = selectedDestination === '기타' ? customDestination : selectedDestination; const duration = String(formData.get('duration') || '0');
+    const type = String(formData.get('tripType') || 'domestic'); const destination = String(formData.get('destination') || '').trim();
+    const name = String(formData.get('tripName') || '').trim();
+    if (!name) return showFormError('일정 이름을 입력해 주세요.');
+    if (!destination) return showFormError('이동 지역 또는 국가를 입력해 주세요.');
+    const duration = String(formData.get('duration') || '0');
     const lodging = formData.get('lodging') === 'yes' && Number(duration) > 0;
+    const activities = [...new Set(formData.getAll('activities').map(value => String(value).trim()).filter(Boolean))];
+    const now = Date.now();
+    const existing = editingTripId ? trips.find(item => item.id === editingTripId) : null;
     const data = {
-      id: makeId(), type, name: String(formData.get('tripName')).trim(), destination,
+      ...(existing || {}), id: existing ? existing.id : makeId(), type, name, destination,
       purposeCategory: String(formData.get('purposeCategory') || 'travel'), purpose: String(formData.get('subPurpose') || '관광'), subPurpose: String(formData.get('subPurpose') || '관광'),
       transport: type === 'domestic' ? String(formData.get('transport') || '기타') : '', duration: lodging ? duration : '0', lodging,
-      startDate: String(formData.get('startDate') || ''), endDate: String(formData.get('endDate') || ''), activities: formData.getAll('activities').map(String), createdAt: Date.now(), updatedAt: Date.now(), missedItems: []
+      startDate: String(formData.get('startDate') || ''), endDate: calculateEndDate(String(formData.get('startDate') || ''), duration, lodging), activities,
+      createdAt: existing ? existing.createdAt : now, updatedAt: now, missedItems: existing ? (existing.missedItems || []) : []
     };
-    const trip = { ...data, ...buildChecklist(data) }; trips.push(trip); persist(); updateHome(); openTrip(trip.id);
+    const generated = buildChecklist(data);
+    const trip = existing
+      ? { ...data, packing: preserveChecklistState(generated.packing, existing.packing || [], true), tasks: preserveChecklistState(generated.tasks, existing.tasks || []) }
+      : { ...data, ...generated };
+    if (existing) trips = trips.map(item => item.id === existing.id ? trip : item); else trips.push(trip);
+    persist(); editingTripId = null; updateHome(); openTrip(trip.id);
+    showToast(existing ? '일정과 체크 상태를 보존해 수정했어요.' : '새 일정을 저장했어요.');
   }
   function showFormError(message) { el.formError.textContent = message; el.formError.hidden = false; el.formError.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  function renderCustomActivities() {
+    el.customActivityList.replaceChildren();
+    customActivityNames.forEach((name, index) => {
+      const chip = document.createElement('span'); chip.className = 'custom-activity-chip';
+      const hidden = document.createElement('input'); hidden.type = 'checkbox'; hidden.name = 'activities'; hidden.value = name; hidden.checked = true; hidden.hidden = true; chip.append(hidden);
+      const text = document.createElement('span'); text.textContent = name; chip.append(text);
+      const edit = document.createElement('button'); edit.type = 'button'; edit.dataset.editActivity = String(index); edit.setAttribute('aria-label', `${name} 활동 수정`); edit.title = '활동 수정'; edit.textContent = '✎'; chip.append(edit);
+      const remove = document.createElement('button'); remove.type = 'button'; remove.dataset.removeActivity = String(index); remove.setAttribute('aria-label', `${name} 활동 삭제`); remove.title = '활동 삭제'; remove.textContent = '×'; chip.append(remove);
+      el.customActivityList.append(chip);
+    });
+  }
+  function addCustomActivity() {
+    const input = $('#newActivityInput'); const name = input.value.trim();
+    if (!name) { showToast('추가할 활동명을 입력해 주세요.'); input.focus(); return; }
+    if (name.length > 40) { showToast('활동명은 40자 이내로 입력해 주세요.'); return; }
+    const all = [...knownActivities, ...customActivityNames];
+    if (all.some(value => value.toLocaleLowerCase() === name.toLocaleLowerCase())) { showToast('이미 선택되거나 등록된 활동이에요.'); return; }
+    customActivityNames.push(name); input.value = ''; renderCustomActivities(); showToast('추가 활동을 등록했어요.');
+  }
+  function handleCustomActivityAction(event) {
+    const edit = event.target.closest('[data-edit-activity]'); const remove = event.target.closest('[data-remove-activity]');
+    if (!edit && !remove) return;
+    const index = Number((edit || remove).dataset[edit ? 'editActivity' : 'removeActivity']);
+    if (!Number.isInteger(index) || index < 0 || index >= customActivityNames.length) return;
+    if (edit) {
+      const oldName = customActivityNames[index]; const answer = window.prompt('활동명을 수정해 주세요.', oldName);
+      if (answer === null) return; const next = answer.trim();
+      if (!next || next.length > 40) { showToast('활동명은 1~40자로 입력해 주세요.'); return; }
+      if ([...knownActivities, ...customActivityNames.filter((_, i) => i !== index)].some(value => value.toLocaleLowerCase() === next.toLocaleLowerCase())) { showToast('같은 이름의 활동이 이미 있어요.'); return; }
+      customActivityNames[index] = next; showToast('활동명을 수정했어요.');
+    } else { customActivityNames.splice(index, 1); showToast('직접 등록한 활동을 삭제했어요.'); }
+    renderCustomActivities();
+  }
   function renderItems(container, items, kind) {
     container.replaceChildren();
     if (!items.length) { const empty = document.createElement('div'); empty.className = 'empty-items'; empty.textContent = kind === 'packing' ? '아직 준비물이 없어요.' : '등록된 출발 전 할 일이 없어요.'; container.append(empty); return; }
@@ -281,14 +379,17 @@
 
   $('#newTripButton').addEventListener('click', () => openForm()); $('#savedNewTripButton').addEventListener('click', () => openForm());
   $$('[data-start-purpose]').forEach(button => button.addEventListener('click', () => openForm('domestic', button.dataset.startPurpose)));
-  $$('[data-trip-type]').forEach(button => button.addEventListener('click', () => setTripType(button.dataset.tripType)));
+  $$('[data-trip-type]').forEach(button => button.addEventListener('click', () => { const oldDestination = el.destination.value; setTripType(button.dataset.tripType); if (button.dataset.tripType === el.typeInput.value) el.destination.value = oldDestination; }));
   $('#purposeCategory').addEventListener('change', event => setPurposeCategory(event.target.value));
-  el.destination.addEventListener('change', () => { const isOther = el.destination.value === '기타'; el.customField.hidden = !isOther; el.customDestination.required = isOther; if (isOther) el.customDestination.focus(); });
-  $('#lodging').addEventListener('change', event => { if (event.target.value === 'no') $('#duration').value = '0'; else if ($('#duration').value === '0') $('#duration').value = '1'; });
-  $('#duration').addEventListener('change', event => { if (event.target.value === '0') $('#lodging').value = 'no'; else $('#lodging').value = 'yes'; });
-  el.form.addEventListener('submit', handleCreateTrip); $('#formBackButton').addEventListener('click', () => { updateHome(); showView('home'); });
+  el.lodging.addEventListener('change', event => { if (event.target.value === 'no') el.duration.value = '0'; else if (el.duration.value === '0') el.duration.value = '1'; updateEndDate(); });
+  el.duration.addEventListener('change', event => { if (event.target.value === '0') el.lodging.value = 'no'; else el.lodging.value = 'yes'; updateEndDate(); });
+  el.startDate.addEventListener('change', updateEndDate); el.startDate.addEventListener('input', updateEndDate);
+  el.form.addEventListener('submit', handleCreateTrip); $('#formBackButton').addEventListener('click', () => { editingTripId = null; updateHome(); showView('home'); });
   $('#checklistBackButton').addEventListener('click', () => { updateHome(); showView('home'); }); $('#topHomeButton').addEventListener('click', () => { updateHome(); showView('home'); });
   $('#homeLink').addEventListener('click', event => { event.preventDefault(); updateHome(); showView('home'); }); $('#deleteTripButton').addEventListener('click', () => { if (activeTripId) deleteTrip(activeTripId); });
+  $('#editTripButton').addEventListener('click', () => { const trip = trips.find(item => item.id === activeTripId); if (trip) openForm(trip.type, trip.purposeCategory, trip); });
+  $('#addActivityButton').addEventListener('click', addCustomActivity); $('#newActivityInput').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); addCustomActivity(); } });
+  el.customActivityList.addEventListener('click', handleCustomActivityAction);
   el.savedTrips.addEventListener('click', event => { const deleteButton = event.target.closest('[data-delete-trip]'); if (deleteButton) { event.stopPropagation(); deleteTrip(deleteButton.dataset.deleteTrip); return; } const openButton = event.target.closest('[data-open-trip]'); if (openButton) openTrip(openButton.dataset.openTrip); });
   el.packingItems.addEventListener('change', handleItemChange); el.taskItems.addEventListener('change', handleItemChange);
   el.packingItems.addEventListener('click', event => { const missedButton = event.target.closest('[data-mark-missed]'); if (missedButton) { markMissed(missedButton.dataset.markMissed); return; } handlePackingAction(event); });
