@@ -1,17 +1,19 @@
-/* 1차 사용자 피드백: 기존 화면 체계에 일정 입력 개선만 덧붙임 */
-.button-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 15px;border:1px solid #99C4D5;border-radius:12px;background:#EEF7FA;color:#2D3137;font-weight:700;cursor:pointer;transition:background .18s,border-color .18s,transform .18s}
-.button-secondary:hover{background:#E1F0F5;border-color:#4F859A;transform:translateY(-1px)}
-.button-secondary:active{background:#D4E9F0;transform:translateY(0)}
-.button-secondary:focus-visible{outline:3px solid rgba(79,133,154,.42);outline-offset:3px}
-.activity-add-row{display:flex;gap:9px;margin-top:13px}
-.activity-add-row input{flex:1;min-width:0;height:44px;padding:0 13px;border:1px solid #DDDFE6;border-radius:12px;background:#fff;color:#2D3137}
-.activity-add-row input:focus{border-color:#99C4D5;outline:none;box-shadow:0 0 0 3px rgba(153,196,213,.2)}
-.custom-activity-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
-.custom-activity-chip{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:3px 5px 3px 12px;border:1px solid #C8DDE5;border-radius:999px;background:#F5FAFC;color:#3E7185;font-size:12px}
-.custom-activity-chip button{display:inline-grid;place-items:center;width:27px;height:27px;border:0;border-radius:50%;background:transparent;color:#696BAC;font-size:15px;cursor:pointer}
-.custom-activity-chip button:hover{background:#E7EAF7}
-.checklist-header-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
-.edit-trip-button{min-height:40px;padding:0 13px;font-size:12px}
-.title-with-actions{width:100%;justify-content:space-between}
-.type-toggle .option-symbol{display:block;flex:0 0 20px;width:20px;height:20px;font-size:initial}
-@media(max-width:600px){.activity-add-row{align-items:stretch;flex-direction:column}.activity-add-button{width:100%}.checklist-header-actions{align-self:flex-start}.edit-trip-button{min-height:39px}.custom-activity-chip{min-height:38px}}
+/* Checklist quality refinements: grouped sections, readable reason labels and compact mobile controls. */
+.checklist-category{min-width:0;padding:8px 0 3px}
+.checklist-category+.checklist-category{margin-top:3px;border-top:1px solid #F0F0F3}
+.checklist-category-title{margin:2px 0 3px;color:#696BAC;font-size:11px;font-weight:800;letter-spacing:.015em}
+.checklist-category .check-row{width:100%;min-width:0}
+.check-item,.check-item-copy{min-width:0}
+.check-item-copy small{overflow-wrap:anywhere}
+.check-item-copy small.direct-item-label{display:inline-flex;align-self:flex-start;margin-top:3px;padding:2px 7px;border:1px solid #D9E8EF;border-radius:999px;background:#F2F8FA;color:#477D91;font-size:9px;line-height:1.4}
+.packing-controls{display:flex;align-items:center;gap:4px;max-width:100%;flex:0 0 auto;flex-wrap:nowrap}
+.packing-controls button,.missed-button{min-height:36px}
+.item-action-button{width:34px;height:36px;flex:0 0 34px}
+.missed-button{padding:0 8px;white-space:nowrap}
+.add-item-form{grid-template-columns:minmax(0,1fr) 44px;align-items:center}
+.add-item-form>button{width:44px;height:44px;min-height:44px}
+.add-item-form .essential-toggle{grid-column:1/-1;display:inline-flex;justify-self:start;align-items:center;width:max-content;max-width:100%;min-height:24px;margin:2px 0 0;padding:0;gap:7px;font-size:11px;line-height:1.35;cursor:pointer}
+.add-item-form .essential-toggle input[type="checkbox"]{appearance:auto;-webkit-appearance:checkbox;flex:0 0 16px;width:16px;height:16px;min-width:16px;min-height:16px;margin:0;accent-color:#4F859A}
+.add-item-form .essential-toggle span{display:block;min-width:0}
+@media(max-width:600px){.checklist-category{padding:7px 0 2px}.packing-controls{gap:2px}.packing-controls button,.missed-button{min-height:36px}.item-action-button{width:32px;height:36px;flex-basis:32px}.add-item-form{grid-template-columns:minmax(0,1fr) 44px}.add-item-form .essential-toggle{min-height:25px}}
+@media(max-width:400px){.packing-controls{gap:1px}.item-action-button{width:30px;height:35px;flex-basis:30px}.missed-button{padding:0 5px;font-size:10px}.add-item-form .essential-toggle input[type="checkbox"]{width:16px;height:16px;flex-basis:16px}}
