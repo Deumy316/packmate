@@ -17,3 +17,9 @@
 .add-item-form .essential-toggle span{display:block;min-width:0}
 @media(max-width:600px){.checklist-category{padding:7px 0 2px}.packing-controls{gap:2px}.packing-controls button,.missed-button{min-height:36px}.item-action-button{width:32px;height:36px;flex-basis:32px}.add-item-form{grid-template-columns:minmax(0,1fr) 44px}.add-item-form .essential-toggle{min-height:25px}}
 @media(max-width:400px){.packing-controls{gap:1px}.item-action-button{width:30px;height:35px;flex-basis:30px}.missed-button{padding:0 5px;font-size:10px}.add-item-form .essential-toggle input[type="checkbox"]{width:16px;height:16px;flex-basis:16px}}
+
+/* Keep the domestic/international selector icons bounded in the flex cards. */
+.type-option{white-space:nowrap}
+.type-option .option-symbol{display:block;width:32px;height:32px;min-width:32px;min-height:32px;flex:0 0 32px}
+
+@media(max-width:600px){.type-option .option-symbol{width:30px;height:30px;min-width:30px;min-height:30px;flex-basis:30px}}
