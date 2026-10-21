@@ -39,6 +39,13 @@
     @media(max-width:700px){.packmate-category-card{padding:12px}.packmate-filter-line{align-items:flex-start}.packmate-checklist-summary{width:100%}.checklist-view .title-with-actions,.checklist-view .packmate-detail-header{gap:10px}.checklist-header-actions{flex:0 0 100%;width:100%;justify-content:flex-start}.packmate-filter-button{min-height:40px}.packmate-scroll-controls{right:max(14px,env(safe-area-inset-right));bottom:calc(76px + env(safe-area-inset-bottom));gap:9px}.packmate-scroll-controls .packmate-back-to-top{width:44px;height:44px}}
     @media(max-width:380px){.packmate-filter-button{padding-inline:9px}.packmate-checklist-summary{gap:6px;font-size:.7rem}.packmate-mini-track{width:52px}.packmate-scroll-controls{right:max(12px,env(safe-area-inset-right));bottom:calc(76px + env(safe-area-inset-bottom));gap:8px}}
     @media(prefers-reduced-motion:reduce){.packmate-mini-fill,.packmate-back-to-top{transition:none}}
+
+    /* Explicit toolbar: back navigation and trip actions share one flex row. */
+    .checklist-view > .packmate-detail-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-width:0;margin:0 0 12px}
+    .checklist-view > .packmate-detail-toolbar > .back-link{flex:0 1 auto;min-width:0;margin:0;white-space:nowrap}
+    .checklist-view > .packmate-detail-toolbar > .checklist-header-actions{position:static;inset:auto;display:flex;flex:0 0 auto;align-items:center;justify-content:flex-end;gap:9px;width:auto;max-width:100%;margin:0}
+    .checklist-view > .checklist-header{margin-top:0}
+    @media(max-width:700px){.checklist-view > .packmate-detail-toolbar{gap:8px}.checklist-view > .packmate-detail-toolbar > .checklist-header-actions{flex:0 0 auto;width:auto;justify-content:flex-end;gap:6px}}
   `;
   if (!document.getElementById(style.id)) document.head.append(style);
 
@@ -191,14 +198,25 @@
 
   const view = document.getElementById('checklistView');
   if (view) {
+    const backLink = view.querySelector(':scope > .back-link');
+    const header = view.querySelector(':scope > .checklist-header');
     const title = view.querySelector('.title-with-actions') || view.querySelector('h1')?.parentElement;
     if (title) {
       title.classList.add('packmate-detail-header');
+      let actions = title.querySelector('.checklist-header-actions');
       const candidates = [...title.querySelectorAll('button,a')].filter(node => /수정|삭제/.test(node.textContent || node.getAttribute('aria-label') || ''));
       if (candidates.length) {
-        let actions = title.querySelector('.checklist-header-actions');
         if (!actions) { actions = document.createElement('div'); actions.className = 'checklist-header-actions'; title.append(actions); }
         candidates.forEach(button => actions.append(button));
+      }
+      if (backLink && actions) {
+        let toolbar = view.querySelector(':scope > .packmate-detail-toolbar');
+        if (!toolbar) {
+          toolbar = document.createElement('div');
+          toolbar.className = 'packmate-detail-toolbar';
+          view.insertBefore(toolbar, header || backLink.nextSibling);
+        }
+        toolbar.append(backLink, actions);
       }
     }
   }

@@ -29,7 +29,8 @@
 
 /* Calm, compact controls for custom activity settings, edit and delete actions. */
 .custom-activity-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
-.custom-activity-entry{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center;gap:6px;min-width:0;padding:8px;border:1px solid #E7E7ED;border-radius:12px;background:#fff}
+.custom-activity-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;min-width:0;padding:8px;border:1px solid #E7E7ED;border-radius:12px;background:#fff}
+.activity-card-actions{display:flex;align-items:center;justify-content:flex-end;justify-self:end;gap:6px;min-width:0}
 .custom-activity-check{min-width:0;margin:0}
 .custom-activity-check span{display:flex;width:100%;max-width:100%;min-height:40px;padding:0 10px;overflow-wrap:anywhere}
 .activity-mini-action{display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;gap:6px;height:40px;min-height:40px;padding:0 10px;border:1px solid rgba(156,167,210,.34);border-radius:10px;background:rgba(156,167,210,.10);color:#696BAC;font-size:11px;font-weight:650;line-height:1.2;white-space:nowrap;cursor:pointer;transition:background .16s,border-color .16s,color .16s,transform .16s}
@@ -38,7 +39,7 @@
 .activity-mini-action:focus-visible{outline:3px solid rgba(105,107,172,.34);outline-offset:2px}
 .activity-mini-action::before{content:"";display:block;flex:0 0 17px;width:17px;height:17px;background:currentColor;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain}
 .activity-mini-action[data-activity-settings]::before,.activity-mini-action.basic-activity-settings::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6h16M4 12h16M4 18h16'/%3E%3Ccircle cx='8' cy='6' r='2' fill='white'/%3E%3Ccircle cx='15' cy='12' r='2' fill='white'/%3E%3Ccircle cx='10' cy='18' r='2' fill='white'/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6h16M4 12h16M4 18h16'/%3E%3Ccircle cx='8' cy='6' r='2' fill='white'/%3E%3Ccircle cx='15' cy='12' r='2' fill='white'/%3E%3Ccircle cx='10' cy='18' r='2' fill='white'/%3E%3C/svg%3E")}
-.activity-mini-action.icon-action{width:40px;min-width:40px;height:40px;padding:0;border-color:rgba(153,196,213,.48);background:#F4FAFC;color:#4F859A;font-size:0}
+.activity-mini-action.icon-action{width:40px;min-width:40px;height:40px;padding:0;gap:0;border-color:rgba(153,196,213,.48);background:#F4FAFC;color:#4F859A;font-size:0}
 .activity-mini-action.icon-action::before{flex-basis:17px;width:17px;height:17px}
 .activity-mini-action[data-activity-edit]::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m14 5 5 5M4 20l4.2-.9L19 8.3a2.1 2.1 0 0 0-3-3L5.2 16.1 4 20Z'/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m14 5 5 5M4 20l4.2-.9L19 8.3a2.1 2.1 0 0 0-3-3L5.2 16.1 4 20Z'/%3E%3C/svg%3E")}
 .activity-mini-action[data-activity-edit]:hover{border-color:#99C4D5;background:#EAF5F8;color:#3F7488}
@@ -53,8 +54,8 @@
 .activity-option-entry .check-chip span{width:100%;min-height:40px;padding:0 10px;border-color:transparent;background:transparent;overflow-wrap:anywhere}
 .activity-option-entry .basic-activity-settings{height:40px;min-height:40px;padding:0 8px;font-size:10px}
 .activity-option-entry .basic-activity-settings::before{flex-basis:15px;width:15px;height:15px}
-@media(max-width:600px){.custom-activity-list{grid-template-columns:1fr}.custom-activity-entry{grid-template-columns:minmax(0,1fr) auto auto auto;gap:5px;padding:8px}.activity-mini-action{min-height:40px;padding:0 10px}.activity-mini-action.icon-action{width:40px;min-width:40px;height:40px}.activity-mini-action::before{width:17px;height:17px;flex-basis:17px}.activity-options{grid-template-columns:1fr;gap:7px}.activity-option-entry{padding:5px 8px}.activity-option-entry .basic-activity-settings{min-height:40px}}
-@media(max-width:380px){.custom-activity-entry{gap:5px}.activity-mini-action{padding:0 8px}}
+@media(max-width:600px){.custom-activity-list{grid-template-columns:1fr}.custom-activity-entry{gap:5px;padding:8px}.activity-card-actions{gap:5px}.activity-mini-action{min-height:40px;padding:0 10px}.activity-mini-action.icon-action{width:40px;min-width:40px;height:40px}.activity-mini-action::before{width:17px;height:17px;flex-basis:17px}.activity-options{grid-template-columns:1fr;gap:7px}.activity-option-entry{padding:5px 8px}.activity-option-entry .basic-activity-settings{min-height:40px}}
+@media(max-width:380px){.custom-activity-entry{grid-template-columns:minmax(0,1fr);gap:6px}.activity-card-actions{justify-self:end;gap:5px}.activity-mini-action{padding:0 8px}}
 @media(prefers-reduced-motion:reduce){.activity-mini-action{transition:none}}
 
 /* Checklist: category cards form the outer grid; every card's items remain a single vertical list. */
@@ -456,3 +457,291 @@ body .checklist-view #packingItems .packmate-category-items .quantity-editor inp
 @media(prefers-reduced-motion:reduce) {
   .activity-option-entry,.custom-activity-entry { transition: none; }
 }
+
+/* Final UI alignment: activity supply editor, consistent controls and checklist wording. */
+.activity-mini-action {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  line-height: 1;
+}
+.activity-option-entry .basic-activity-settings {
+  flex: 0 0 auto;
+  justify-content: center;
+  border: 1px solid rgba(156,167,210,.34);
+  border-radius: 10px;
+  background: rgba(156,167,210,.10);
+  color: #696BAC;
+}
+.custom-activity-check span { word-break: keep-all; }
+.activity-editor {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 10px 0 2px;
+  padding: 13px;
+  border: 1px solid #E1E4ED;
+  border-radius: 14px;
+  background: #FBFCFE;
+}
+.activity-editor-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ECEEF3;
+}
+.activity-editor-heading strong {
+  min-width: 0;
+  color: #424751;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.activity-editor-heading button,
+.activity-supply-list li button,
+.activity-supply-add button {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid #D9DCE7;
+  border-radius: 10px;
+  background: #fff;
+  color: #5F6470;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .16s, border-color .16s, color .16s, transform .16s;
+}
+.activity-editor-heading button {
+  width: 38px;
+  min-width: 38px;
+  padding: 0;
+  border-color: #E5D6D5;
+  background: #FFF5F4;
+  color: #A76563;
+  font-size: 20px;
+}
+.activity-editor-heading button:hover,
+.activity-supply-list li button[data-supply-remove]:hover {
+  border-color: #E9A6A4;
+  background: #FCEAE9;
+  color: #A64E4C;
+}
+.activity-supply-list {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.activity-supply-list li {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto auto;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid #E8E9EF;
+  border-radius: 11px;
+  background: #fff;
+}
+.activity-supply-list li > span {
+  min-width: 0;
+  color: #4C515B;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+.activity-supply-list li button[data-supply-edit] {
+  border-color: #C6DCE5;
+  background: #F1F8FA;
+  color: #4F859A;
+}
+.activity-supply-list li button[data-supply-edit]:hover {
+  border-color: #99C4D5;
+  background: #E5F2F6;
+}
+.activity-supply-list li button[data-supply-remove] {
+  border-color: #F0CECD;
+  background: #FFF5F4;
+  color: #B86E6C;
+}
+.activity-supply-add {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 10px;
+}
+.activity-supply-add input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 11px;
+  border: 1px solid #DDDFE6;
+  border-radius: 11px;
+  background: #fff;
+  color: #2D3137;
+  font: inherit;
+  font-size: 12px;
+}
+.activity-supply-add input:focus {
+  border-color: #99C4D5;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(153,196,213,.2);
+}
+.activity-supply-add button {
+  min-width: 104px;
+  height: 44px;
+  min-height: 44px;
+  border-color: #C6DCE5;
+  background: #EEF7FA;
+  color: #3F7185;
+  white-space: nowrap;
+}
+.activity-supply-add button:hover {
+  border-color: #99C4D5;
+  background: #E4F1F5;
+}
+.activity-supply-list li button:focus-visible,
+.activity-supply-add button:focus-visible,
+.activity-editor-heading button:focus-visible {
+  outline: 3px solid rgba(105,107,172,.35);
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .activity-editor { padding: 11px; }
+  .activity-supply-list li { grid-template-columns: minmax(0,1fr) auto auto; gap: 5px; padding: 6px; }
+  .activity-supply-list li button { min-height: 38px; padding: 0 9px; }
+  .activity-supply-add { grid-template-columns: minmax(0,1fr) auto; gap: 7px; }
+  .activity-supply-add input,.activity-supply-add button { height: 44px; min-height: 44px; }
+  .activity-supply-add button { min-width: 96px; padding: 0 9px; }
+}
+@media (max-width: 360px) {
+  .activity-supply-list li { grid-template-columns: minmax(0,1fr) auto auto; }
+  .activity-supply-add { grid-template-columns: minmax(0,1fr); }
+  .activity-supply-add button { width: 100%; min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .activity-editor-heading button,.activity-supply-list li button,.activity-supply-add button { transition: none; }
+}
+
+/* Place trip actions opposite the back link, while the title and metadata stay below. */
+.checklist-view { position: relative; }
+.checklist-view > .back-link {
+  position: relative;
+  z-index: 2;
+  white-space: nowrap;
+}
+.checklist-view .checklist-header-actions {
+  position: absolute;
+  z-index: 2;
+  top: 27px;
+  right: 0;
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .checklist-view .checklist-header-actions { top: 16px; right: 0; }
+}
+
+/* Keep the missed-record label together, allowing a natural two-word wrap when needed. */
+body .checklist-view #packingItems .packmate-category-items .packing-controls > .missed-button {
+  display: inline-flex;
+  flex: 0 0 64px;
+  width: 64px;
+  min-width: 64px;
+  height: 36px;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  color: #8A6665;
+  font-size: 11px;
+  line-height: 1.15;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  text-align: center;
+}
+body .checklist-view #packingItems .packmate-category-items .packing-controls > .item-action-button {
+  flex-basis: 34px;
+  width: 34px;
+  min-width: 34px;
+  height: 36px;
+  min-height: 36px;
+}
+@media (max-width: 380px) {
+  body .checklist-view #packingItems .packmate-category-items .packing-controls > .missed-button {
+    flex-basis: 60px;
+    width: 60px;
+    min-width: 60px;
+    font-size: 10px;
+  }
+  body .checklist-view #packingItems .packmate-category-items .packing-controls > .item-action-button {
+    flex-basis: 30px;
+    width: 30px;
+    min-width: 30px;
+  }
+}
+
+/* Align action button sizing and icon centering across the touched UI sections. */
+.activity-editor button,
+.activity-mini-action,
+.checklist-view .packing-controls button,
+.checklist-view .packmate-category-toggle,
+.checklist-view .packmate-filter-button {
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.checklist-view .packing-controls .item-action-button {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #E3E5EB;
+  border-radius: 9px;
+  background: #fff;
+  color: #68717A;
+  line-height: 1;
+}
+.checklist-view .packing-controls .item-action-button:hover {
+  border-color: #C6DCE5;
+  background: #EEF7FA;
+  color: #4F859A;
+}
+.checklist-view .packing-controls .item-remove-button:hover {
+  border-color: #F0CECD;
+  background: #FFF1F0;
+  color: #A64E4C;
+}
+.checklist-view .packing-controls .missed-button {
+  border: 1px solid #EAD6D5;
+  border-radius: 9px;
+  background: #FFF7F6;
+  cursor: pointer;
+}
+.checklist-view .packing-controls .missed-button:hover {
+  border-color: #E8BCBA;
+  background: #FCEAE9;
+}
+@media (max-width: 600px) {
+  .checklist-view > .back-link { max-width: calc(100% - 174px); }
+  .checklist-view .checklist-header-actions { gap: 7px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .checklist-view .packing-controls button { transition: none; }
+}
+/* End of PACKMATE UI alignment refinements. */
