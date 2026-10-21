@@ -50,7 +50,7 @@
   if (!document.getElementById(style.id)) document.head.append(style);
 
   const packing = document.getElementById('packingItems');
-  const categoryNames = { basic: '기본 준비물', apparel: '의류·세면', activity: '활동별 준비물', personal: '개인 추가 준비물' };
+  const categoryNames = { basic: ['category.basic', '기본 준비물'], apparel: ['category.apparel', '의류·세면'], activity: ['category.activity', '활동별 준비물'], personal: ['category.personal', '개인 추가 준비물'] };
   const categoryOrder = Object.keys(categoryNames);
   const collapsed = new Set();
   const categoryButtons = new Map();
@@ -59,6 +59,12 @@
   let busy = false;
   let refreshQueued = false;
   let packingObserver = null;
+
+  function translate(key, fallback, values = {}) {
+    const value = window.PACKMATE_I18N?.t?.(key) || fallback;
+    return Object.entries(values).reduce((text, [name, replacement]) => text.replaceAll(`{${name}}`, replacement), value);
+  }
+  const categoryName = key => translate(...categoryNames[key]);
 
   function rowCategory(row) {
     const metadata = `${row.dataset.category || ''} ${row.dataset.type || ''} ${row.dataset.source || ''} ${row.dataset.custom || ''} ${row.className || ''}`.toLowerCase();
@@ -78,7 +84,7 @@
     if (!packing || (tools && tools.isConnected)) return;
     tools = document.createElement('div');
     tools.className = 'packmate-checklist-tools';
-    tools.innerHTML = '<div class="packmate-filter-line"><div class="packmate-filter-group" role="group" aria-label="준비물 상태 필터"><span class="packmate-tools-label">보기</span><button type="button" class="packmate-filter-button" data-filter="all" aria-pressed="true">전체</button><button type="button" class="packmate-filter-button" data-filter="pending" aria-pressed="false">미완료</button><button type="button" class="packmate-filter-button" data-filter="done" aria-pressed="false">완료</button></div><div class="packmate-checklist-summary" aria-live="polite"><span class="packmate-count-text"></span><span class="packmate-mini-track"><span class="packmate-mini-fill"></span></span><span class="packmate-percent-text"></span></div></div><div class="packmate-category-line"><span class="packmate-tools-label">카테고리</span><div class="packmate-category-toggles"></div></div>';
+    tools.innerHTML = `<div class="packmate-filter-line"><div class="packmate-filter-group" role="group" aria-label="${translate('checklist.filterAria', '준비물 상태 필터')}"><span class="packmate-tools-label">${translate('checklist.view', '보기')}</span><button type="button" class="packmate-filter-button" data-filter="all" aria-pressed="true">${translate('checklist.all', '전체')}</button><button type="button" class="packmate-filter-button" data-filter="pending" aria-pressed="false">${translate('checklist.pending', '미완료')}</button><button type="button" class="packmate-filter-button" data-filter="done" aria-pressed="false">${translate('checklist.done', '완료')}</button></div><div class="packmate-checklist-summary" aria-live="polite"><span class="packmate-count-text"></span><span class="packmate-mini-track"><span class="packmate-mini-fill"></span></span><span class="packmate-percent-text"></span></div></div><div class="packmate-category-line"><span class="packmate-tools-label">${translate('checklist.categoryLabel', '카테고리')}</span><div class="packmate-category-toggles"></div></div>`;
     packing.before(tools);
     tools.addEventListener('click', event => {
       const filterButton = event.target.closest('[data-filter]');
@@ -95,7 +101,7 @@
     const card = document.createElement('section');
     card.className = 'packmate-category-card'; card.dataset.categoryCard = key;
     const heading = document.createElement('div'); heading.className = 'packmate-category-heading';
-    const title = document.createElement('h3'); title.textContent = categoryNames[key];
+    const title = document.createElement('h3'); title.textContent = categoryName(key);
     const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'packmate-category-toggle'; toggle.dataset.categoryToggle = key;
     heading.append(title, toggle);
     const content = document.createElement('div'); content.className = 'packmate-category-items';
@@ -150,12 +156,13 @@
       if (content) content.hidden = collapsed.has(key);
       if (toggle) {
         toggle.setAttribute('aria-expanded', String(!collapsed.has(key)));
-        toggle.textContent = collapsed.has(key) ? '펼치기 +' : '접기 −';
-        toggle.setAttribute('aria-label', `${categoryNames[key]} ${collapsed.has(key) ? '펼치기' : '접기'}`);
+        const action = translate(collapsed.has(key) ? 'checklist.expand' : 'checklist.collapse', collapsed.has(key) ? '펼치기' : '접기');
+        toggle.textContent = `${action} ${collapsed.has(key) ? '+' : '−'}`;
+        toggle.setAttribute('aria-label', translate('checklist.toggleAria', `${categoryName(key)} ${action}`, { category: categoryName(key), action }));
       }
     });
     if (tools) {
-      tools.querySelector('.packmate-count-text').textContent = `${done}/${rows.length}개 완료`;
+      tools.querySelector('.packmate-count-text').textContent = translate('checklist.countDone', `${done}/${rows.length}개 완료`, { done, total: rows.length });
       const percent = rows.length ? Math.round(done * 100 / rows.length) : 0;
       tools.querySelector('.packmate-percent-text').textContent = `${percent}%`;
       tools.querySelector('.packmate-mini-fill').style.width = `${percent}%`;
@@ -171,8 +178,10 @@
           categoryButtons.set(key, button);
         }
         button.hidden = !(matchingCounts.get(key) > 0);
-        button.textContent = `${categoryNames[key]} ${collapsed.has(key) ? '+' : '−'}`;
+        button.textContent = `${categoryName(key)} ${collapsed.has(key) ? '+' : '−'}`;
         button.setAttribute('aria-expanded', String(!collapsed.has(key)));
+        const action = translate(collapsed.has(key) ? 'checklist.expand' : 'checklist.collapse', collapsed.has(key) ? '펼치기' : '접기');
+        button.setAttribute('aria-label', translate('checklist.toggleAria', `${categoryName(key)} ${action}`, { category: categoryName(key), action }));
       });
     }
     busy = false;
