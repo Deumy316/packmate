@@ -2,3 +2,8 @@
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local backups and review artifacts
+/_project_backups/
+/df
+/docs/legacy-js/

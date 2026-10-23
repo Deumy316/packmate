@@ -7,6 +7,10 @@
     'meta.title': { ko: 'PACKMATE — 목적별 이동과 체류 준비', en: 'PACKMATE — Plan Every Trip with Purpose', tl: 'PACKMATE — Ihanda ang Bawat Biyahe nang Maayos' },
     'meta.description': { ko: '이동 목적과 일정에 맞춰 여행·출장·교육·방문 준비를 관리하는 PACKMATE', en: 'PACKMATE helps you prepare for travel, business, education, and visits based on your plans.', tl: 'Tumutulong ang PACKMATE sa paghahanda para sa biyahe, trabaho, edukasyon, at pagbisita ayon sa iyong iskedyul.' },
     'home.local': { ko: '내 기기에 저장', en: 'Saved on this device', tl: 'Naka-save sa device na ito' },
+    'status.checking': { ko: '확인 중', en: 'Checking', tl: 'Sinusuri' },
+    'status.cloudReadOnly': { ko: '클라우드 읽기 전용', en: 'Cloud read-only', tl: 'Read-only sa cloud' },
+    'status.privateHidden': { ko: '개인 일정 비표시', en: 'Personal trips hidden', tl: 'Nakatago ang personal na iskedyul' },
+    'status.cloudError': { ko: '클라우드 연결 오류', en: 'Cloud connection error', tl: 'Error sa koneksyon sa cloud' },
     'home.homeButton': { ko: '홈으로 이동', en: 'Go to home', tl: 'Pumunta sa home' },
     'home.eyebrow': { ko: '이동과 체류 준비의 새로운 루틴', en: 'A better routine for every trip', tl: 'Mas maayos na paghahanda sa bawat biyahe' },
     'home.title.first': { ko: '목적에 맞게 준비하고,', en: 'Prepare for your purpose,', tl: 'Maghanda ayon sa pakay,' },
@@ -36,6 +40,10 @@
     'home.empty.title': { ko: '아직 저장된 일정이 없어요', en: 'No saved trips yet', tl: 'Wala pang naka-save na iskedyul' },
     'home.empty.description': { ko: '첫 일정을 만들고 필요한 준비를 확인해 보세요.', en: 'Create your first trip and see what you need to prepare.', tl: 'Gumawa ng unang iskedyul at tingnan ang mga kailangang ihanda.' },
     'home.storage': { ko: '일정은 현재 브라우저에 저장돼요. 다른 기기와 자동으로 동기화되지 않습니다.', en: 'Trips are saved in this browser and are not automatically synced across devices.', tl: 'Naka-save ang mga iskedyul sa browser na ito at hindi awtomatikong nagsi-sync sa ibang device.' },
+    'home.storageChecking': { ko: '인증 및 클라우드 일정 상태를 확인하고 있어요.', en: 'Checking your account and cloud trips.', tl: 'Sinusuri ang account at mga iskedyul sa cloud.' },
+    'home.storageReadOnly': { ko: '현재 계정의 클라우드 일정을 읽기 전용으로 표시해요. 자동 동기화는 아직 지원하지 않습니다.', en: 'Cloud trips for this account are shown read-only. Automatic sync is not available yet.', tl: 'Read-only ang mga iskedyul sa cloud ng account na ito. Hindi pa available ang awtomatikong sync.' },
+    'home.storageHidden': { ko: '로그인하지 않은 동안 개인 일정은 표시하지 않아요.', en: 'Personal trips are hidden while you are signed out.', tl: 'Nakatago ang mga personal na iskedyul habang naka-log out.' },
+    'home.storageError': { ko: '클라우드 일정에 연결하지 못해 개인 기록을 비워 두었어요.', en: 'Could not connect to cloud trips, so personal records remain hidden.', tl: 'Hindi makakonekta sa mga iskedyul sa cloud kaya nananatiling nakatago ang personal na tala.' },
     'form.back': { ko: '저장된 일정', en: 'Saved trips', tl: 'Mga naka-save na iskedyul' },
     'form.kicker': { ko: 'PLAN YOUR MOVE', en: 'PLAN YOUR TRIP', tl: 'PLANUHIN ANG BIYAHE' },
     'form.title': { ko: '어떤 일정을 준비할까요?', en: 'What kind of trip are you planning?', tl: 'Anong uri ng biyahe ang ihahanda mo?' },
@@ -83,7 +91,9 @@
     'form.activityPlaceholder': { ko: '예: 자전거, 스키', en: 'e.g. cycling, skiing', tl: 'hal. pagbibisikleta, skiing' },
     'form.activityAdd': { ko: '활동 추가', en: 'Add activity', tl: 'Magdagdag ng aktibidad' },
     'form.privacy': { ko: '일정 정보는 이 브라우저에 저장됩니다.', en: 'Trip information is saved in this browser.', tl: 'Naka-save sa browser na ito ang impormasyon ng iskedyul.' },
+    'form.previewPrivacy': { ko: '체험 중에는 입력 내용과 추천 결과를 저장하지 않습니다.', en: 'Preview mode does not save your entries or recommendations.', tl: 'Hindi sine-save sa preview mode ang mga inilagay mo o mga rekomendasyon.' },
     'form.submit': { ko: '준비 목록 만들기', en: 'Create checklist', tl: 'Gumawa ng checklist' },
+    'form.preview': { ko: '추천 목록 미리보기', en: 'Preview recommendations', tl: 'I-preview ang mga rekomendasyon' },
     'form.save': { ko: '변경 내용 저장', en: 'Save changes', tl: 'I-save ang mga pagbabago' },
     'checklist.title': { ko: '준비 현황', en: 'Preparation overview', tl: 'Kalagayan ng paghahanda' },
     'checklist.delete': { ko: '이 일정 삭제', en: 'Delete this trip', tl: 'Burahin ang iskedyul na ito' },
@@ -91,6 +101,8 @@
     'checklist.taskProgress': { ko: '출발 전 할 일', en: 'Pre-trip tasks', tl: 'Mga gawain bago bumiyahe' },
     'checklist.noticeLead': { ko: '출발 전 한 번 더 확인해요.', en: 'Do one last check before you go.', tl: 'Muling suriin bago umalis.' },
     'checklist.noticeText': { ko: '체크 표시는 직접 확인을 돕는 기록이며, 실제 준비 여부를 대신 확인하지는 않아요.', en: 'Checkmarks help you keep track, but do not verify that an item is actually ready.', tl: 'Tumutulong ang mga tsek para magtala, ngunit hindi nito tinitiyak na handa na talaga ang isang gamit.' },
+    'checklist.readOnlyNotice': { ko: '클라우드 저장 기능 준비 중 · 현재 읽기 전용', en: 'Cloud saving is coming · Currently read-only', tl: 'Inihahanda ang cloud saving · Read-only sa ngayon' },
+    'checklist.previewNotice': { ko: '체험 미리보기 · 입력 내용과 추천 결과는 저장되지 않습니다.', en: 'Preview mode · Your entries and recommendations are not saved.', tl: 'Preview mode · Hindi sine-save ang mga inilagay mo at mga rekomendasyon.' },
     'checklist.preflightKicker': { ko: 'BEFORE YOU GO', en: 'BEFORE YOU GO', tl: 'BAGO UMALIS' },
     'checklist.preflightTitle': { ko: '출발 직전 점검', en: 'Final check before departure', tl: 'Huling pagsusuri bago umalis' },
     'checklist.preflightDescription': { ko: '아직 확인하지 않은 준비물과 업무를 다시 살펴보세요.', en: 'Review any supplies and tasks you have not checked yet.', tl: 'Suriin muli ang mga gamit at gawaing hindi mo pa natitingnan.' },
@@ -107,6 +119,11 @@
     'checklist.missedKicker': { ko: 'LEARN FOR NEXT TIME', en: 'LEARN FOR NEXT TIME', tl: 'ARAL PARA SA SUSUNOD' },
     'checklist.missedTitle': { ko: '누락 기록', en: 'Missed items', tl: 'Mga nakalimutang gamit' },
     'checklist.missedDescription': { ko: '빠뜨린 물건을 기록하면 다음 일정의 목록에서 우선 확인하도록 표시해요.', en: 'Record items you forgot so they are highlighted for your next trip.', tl: 'Itala ang mga nakalimutang gamit para bigyang-pansin sa susunod na iskedyul.' },
+    'checklist.missedPriorityTitle': { ko: '지난 누락 준비물', en: 'Previously missed items', tl: 'Mga gamit na dating nakalimutan' },
+    'checklist.missedPriorityDescription': { ko: '이전에 빠뜨린 기록이 있어 목록 상단에 표시했어요.', en: 'These were missed before, so they are highlighted at the top.', tl: 'Dati nang nakalimutan ang mga ito kaya itinampok sa itaas.' },
+    'checklist.missedAlertTitle': { ko: '누락 기록을 다시 확인해요', en: 'Review previously missed items', tl: 'Suriin muli ang mga dating nakalimutang gamit' },
+    'checklist.missedAlertDescription': { ko: '출발이 임박했어요. 목록 상단의 지난 누락 준비물을 직접 확인해 주세요.', en: 'Departure is close. Check the previously missed items at the top of the list.', tl: 'Malapit na ang pag-alis. Suriin ang mga dating nakalimutang gamit sa itaas ng listahan.' },
+    'common.close': { ko: '닫기', en: 'Close', tl: 'Isara' },
     'checklist.bottomNote': { ko: '준비 상태와 개인 기록은 자동으로 이 기기에 저장돼요.', en: 'Your preparation status and personal records are saved on this device.', tl: 'Naka-save sa device na ito ang kalagayan ng paghahanda at mga personal na tala.' },
     'footer.tagline': { ko: '이동과 체류 준비, 조금 더 가볍게.', en: 'Make travel and stay preparations a little easier.', tl: 'Gawing mas magaan ang paghahanda sa biyahe at pananatili.' }
   };
@@ -225,13 +242,20 @@
   function refreshFormActionCopy() {
     const title = document.getElementById('formTitle');
     const submit = document.getElementById('formSubmitButton');
+    const privacy = document.querySelector('.form-footer [data-i18n="form.privacy"], .form-footer [data-i18n="form.previewPrivacy"]');
     if (!title || !submit || document.getElementById('formView')?.hidden) return;
     const route = history.state?.packmateRoute;
     const editing = route?.view === 'form' && Boolean(route.editTripId);
     const titleKey = editing ? 'form.editTitle' : 'form.title';
-    const actionKey = editing ? 'form.save' : 'form.submit';
+    const preview = !editing && Boolean(window.PACKMATE_APP_DATA?.getState?.().readOnly);
+    const actionKey = editing ? 'form.save' : preview ? 'form.preview' : 'form.submit';
     title.setAttribute('data-i18n', titleKey);
     title.textContent = t(titleKey);
+    if (privacy) {
+      const privacyKey = preview ? 'form.previewPrivacy' : 'form.privacy';
+      privacy.setAttribute('data-i18n', privacyKey);
+      privacy.textContent = t(privacyKey);
+    }
     submit.innerHTML = `<span data-i18n="${actionKey}">${t(actionKey)}</span> <span class="button-arrow" aria-hidden="true">↗</span>`;
   }
   function refreshFormStaticCopy() {

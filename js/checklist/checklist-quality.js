@@ -27,6 +27,20 @@
     .packmate-checklist-summary{display:flex;align-items:center;gap:8px;color:#2D3137;font-size:.76rem;white-space:nowrap}
     .packmate-mini-track{display:block;width:72px;height:6px;overflow:hidden;border-radius:99px;background:#EDF1F3}
     .packmate-mini-fill{display:block;height:100%;border-radius:inherit;background:#99C4D5;transition:width .2s ease}
+    .packmate-missed-priority{grid-column:1/-1;min-width:0;padding:14px;border:1px solid #EDC7B8;border-radius:18px;background:#FFF8F4;box-shadow:0 5px 18px rgba(138,72,53,.06)}
+    .packmate-missed-priority-heading{display:flex;align-items:flex-start;gap:9px;margin-bottom:9px;padding-bottom:8px;border-bottom:1px solid #F3DDD4}
+    .packmate-missed-priority-mark{flex:0 0 auto;color:#C97558;font-size:1.05rem;line-height:1.35}
+    .packmate-missed-priority-heading h3{margin:0;color:#764B3E;font-size:.94rem;line-height:1.4}
+    .packmate-missed-priority-heading p{margin:2px 0 0;color:#8A6256;font-size:.75rem;line-height:1.5}
+    .packmate-missed-priority-items{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;min-width:0}
+    .packmate-missed-alert{width:min(430px,calc(100vw - 28px));max-height:min(82vh,620px);padding:0;border:0;border-radius:20px;background:#FFFDFB;color:#2D3137;box-shadow:0 20px 54px rgba(45,49,55,.22)}
+    .packmate-missed-alert::backdrop{background:rgba(45,49,55,.38)}
+    .packmate-missed-alert-body{display:grid;gap:12px;max-height:min(82vh,620px);overflow:auto;padding:22px}
+    .packmate-missed-alert-mark{color:#C97558;font-size:1.5rem;line-height:1}
+    .packmate-missed-alert h2{margin:0;color:#633F35;font-size:1.2rem;line-height:1.35}
+    .packmate-missed-alert p{margin:0;color:#765B53;font-size:.9rem;line-height:1.65}
+    .packmate-missed-alert button{min-height:42px;margin-top:4px;padding:8px 16px;border:1px solid #99C4D5;border-radius:12px;background:#EAF5F8;color:#3E6574;font:inherit;font-weight:700;cursor:pointer}
+    .packmate-missed-alert button:focus-visible{outline:3px solid #696BAC;outline-offset:3px}
     .packmate-category-items[hidden],.packmate-category-card[hidden],.check-row[hidden]{display:none!important}
     #taskItems{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-content:start}
     .missed-history-list button,.missed-history-list .icon-button,.missed-history-list [aria-label*=삭제],.missed-history-list [aria-label*=수정]{min-width:38px;min-height:38px}
@@ -36,7 +50,7 @@
     .packmate-back-to-top:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(45,49,55,.2)}
     .packmate-back-to-top:focus-visible,.packmate-filter-button:focus-visible,.packmate-category-toggle:focus-visible{outline:3px solid #696BAC;outline-offset:3px}
     .packmate-back-to-top svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-    @media(max-width:700px){.packmate-category-card{padding:12px}.packmate-filter-line{align-items:flex-start}.packmate-checklist-summary{width:100%}.checklist-view .title-with-actions,.checklist-view .packmate-detail-header{gap:10px}.checklist-header-actions{flex:0 0 100%;width:100%;justify-content:flex-start}.packmate-filter-button{min-height:40px}.packmate-scroll-controls{right:max(14px,env(safe-area-inset-right));bottom:calc(76px + env(safe-area-inset-bottom));gap:9px}.packmate-scroll-controls .packmate-back-to-top{width:44px;height:44px}}
+    @media(max-width:700px){.packmate-category-card,.packmate-missed-priority{padding:12px}.packmate-filter-line{align-items:flex-start}.packmate-checklist-summary{width:100%}.checklist-view .title-with-actions,.checklist-view .packmate-detail-header{gap:10px}.checklist-header-actions{flex:0 0 100%;width:100%;justify-content:flex-start}.packmate-filter-button{min-height:40px}.packmate-scroll-controls{right:max(14px,env(safe-area-inset-right));bottom:calc(76px + env(safe-area-inset-bottom));gap:9px}.packmate-scroll-controls .packmate-back-to-top{width:44px;height:44px}.packmate-missed-alert-body{padding:18px}}
     @media(max-width:380px){.packmate-filter-button{padding-inline:9px}.packmate-checklist-summary{gap:6px;font-size:.7rem}.packmate-mini-track{width:52px}.packmate-scroll-controls{right:max(12px,env(safe-area-inset-right));bottom:calc(76px + env(safe-area-inset-bottom));gap:8px}}
     @media(prefers-reduced-motion:reduce){.packmate-mini-fill,.packmate-back-to-top{transition:none}}
 
@@ -59,6 +73,9 @@
   let busy = false;
   let refreshQueued = false;
   let packingObserver = null;
+  let alertDialog = null;
+  const alertMemory = new Set();
+  const alertStatePrefix = 'packmate.ui.missed-alert.v1';
 
   function translate(key, fallback, values = {}) {
     const value = window.PACKMATE_I18N?.t?.(key) || fallback;
@@ -108,24 +125,50 @@
     card.append(heading, content);
     return card;
   }
+  function isMissedRecommendation(row) {
+    const itemId = row.querySelector('[data-item-kind="packing"][data-item-id]')?.dataset.itemId;
+    const trip = tripForCurrentDetail();
+    if (!itemId || !Array.isArray(trip?.packing)) return false;
+    const matches = trip.packing.filter(item => item && String(item.id) === itemId);
+    return matches.length === 1 && (matches[0].source === 'missed' || matches[0].previouslyMissed === true);
+  }
+  function makeMissedPriority() {
+    const panel = document.createElement('section');
+    panel.className = 'packmate-missed-priority';
+    panel.dataset.missedPriority = '';
+    panel.innerHTML = `<div class="packmate-missed-priority-heading"><span class="packmate-missed-priority-mark" aria-hidden="true">⚑</span><div><h3 data-i18n="checklist.missedPriorityTitle">${translate('checklist.missedPriorityTitle', '지난 누락 준비물')}</h3><p data-i18n="checklist.missedPriorityDescription">${translate('checklist.missedPriorityDescription', '이전에 빠뜨린 기록이 있어 목록 상단에 표시했어요.')}</p></div></div><div class="packmate-category-items packmate-missed-priority-items" data-missed-priority-items></div>`;
+    return panel;
+  }
   function groupDirectRows() {
     const directRows = [...packing.children].filter(node => node.classList?.contains('check-row'));
     if (!directRows.length) return;
     if (packingObserver) packingObserver.disconnect();
     try {
       const map = new Map();
+      const missed = [];
       directRows.forEach(row => {
+        if (isMissedRecommendation(row)) { missed.push(row); return; }
         const key = rowCategory(row);
         if (!map.has(key)) map.set(key, []);
         map.get(key).push(row);
       });
+      if (missed.length) {
+        let panel = packing.querySelector(':scope > [data-missed-priority]');
+        if (!panel) { panel = makeMissedPriority(); packing.prepend(panel); }
+        const content = panel.querySelector('[data-missed-priority-items]');
+        missed.forEach(row => {
+          delete row.dataset.packmateCategory;
+          row.dataset.packmatePriority = 'missed';
+          content.append(row);
+        });
+      }
       categoryOrder.forEach(key => {
         const entries = map.get(key);
         if (!entries?.length) return;
         let card = packing.querySelector(`:scope > [data-category-card="${key}"]`);
         if (!card) { card = makeCard(key); packing.append(card); }
         const content = card.querySelector('.packmate-category-items');
-        entries.forEach(row => { row.dataset.packmateCategory = key; content.append(row); });
+        entries.forEach(row => { delete row.dataset.packmatePriority; row.dataset.packmateCategory = key; content.append(row); });
       });
     } finally {
       if (packingObserver) packingObserver.observe(packing, { childList: true, subtree: true });
@@ -140,14 +183,17 @@
     const matchingCounts = new Map(categoryOrder.map(key => [key, 0]));
     let done = 0;
     rows.forEach(row => {
+      const priority = row.dataset.packmatePriority === 'missed' || !!row.closest('[data-missed-priority]');
       const key = row.dataset.packmateCategory || rowCategory(row);
       const checked = !!row.querySelector('input[type="checkbox"]')?.checked;
       const matchesFilter = filter === 'all' || (filter === 'done' ? checked : !checked);
       if (checked) done++;
-      if (matchesFilter) matchingCounts.set(key, (matchingCounts.get(key) || 0) + 1);
+      if (!priority && matchesFilter) matchingCounts.set(key, (matchingCounts.get(key) || 0) + 1);
       row.hidden = !matchesFilter;
-      row.dataset.packmateCategory = key;
+      if (!priority) row.dataset.packmateCategory = key;
     });
+    const missedPriority = packing.querySelector(':scope > [data-missed-priority]');
+    if (missedPriority) missedPriority.hidden = !missedPriority.querySelector('.check-row:not([hidden])');
     packing.querySelectorAll('[data-category-card]').forEach(card => {
       const key = card.dataset.categoryCard;
       card.hidden = !(matchingCounts.get(key) > 0);
@@ -185,6 +231,7 @@
       });
     }
     busy = false;
+    maybeShowMissedAlert();
   }
   function scheduleRefresh() {
     if (refreshQueued) return;
@@ -233,10 +280,75 @@
   function tripForCurrentDetail() {
     const route = history.state?.packmateRoute;
     if (route?.view !== 'checklist' || !route.tripId) return null;
+    return window.PACKMATE_APP_DATA?.getTrip?.(route.tripId) || null;
+  }
+  function missedAlertScope() {
+    const state = window.PACKMATE_APP_DATA?.getState?.();
+    if (typeof state?.userId === 'string' && state.userId) return `account-${state.userId}`;
+    return state?.mode === 'guest-preview' ? 'guest' : '';
+  }
+  function missedAlertStorageKey() {
+    const scope = missedAlertScope();
+    return scope ? `${alertStatePrefix}.${encodeURIComponent(scope)}` : '';
+  }
+  function missedAlertToken(trip) {
+    const storageKey = missedAlertStorageKey();
+    return storageKey && typeof trip?.id === 'string' && trip.id ? `${storageKey}\u0000${trip.id}` : '';
+  }
+  function hasShownMissedAlert(trip) {
+    const token = missedAlertToken(trip);
+    if (!token || alertMemory.has(token)) return !!token;
     try {
-      const stored = JSON.parse(localStorage.getItem('packmate.trips.v1') || '[]');
-      return Array.isArray(stored) ? stored.find(trip => trip?.id === route.tripId) || null : null;
-    } catch (_) { return null; }
+      const saved = JSON.parse(localStorage.getItem(missedAlertStorageKey()) || '[]');
+      return Array.isArray(saved) && saved.includes(trip.id);
+    } catch (_) { return false; }
+  }
+  function rememberMissedAlert(trip) {
+    const token = missedAlertToken(trip);
+    if (!token) return;
+    alertMemory.add(token);
+    try {
+      const storageKey = missedAlertStorageKey();
+      const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      const ids = Array.isArray(saved) ? saved.filter(value => typeof value === 'string') : [];
+      if (!ids.includes(trip.id)) ids.push(trip.id);
+      localStorage.setItem(storageKey, JSON.stringify(ids));
+    } catch (_) { /* Memory still prevents repeated prompts in this page. */ }
+  }
+  function daysUntilDeparture(value) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+    if (!match) return null;
+    const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+    const local = new Date(year, month - 1, day);
+    if (local.getFullYear() !== year || local.getMonth() !== month - 1 || local.getDate() !== day) return null;
+    const now = new Date();
+    return (Date.UTC(year, month - 1, day) - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000;
+  }
+  function ensureMissedAlertDialog() {
+    if (alertDialog?.isConnected) return alertDialog;
+    alertDialog = document.createElement('dialog');
+    alertDialog.className = 'packmate-missed-alert';
+    alertDialog.setAttribute('aria-labelledby', 'packmateMissedAlertTitle');
+    alertDialog.setAttribute('aria-describedby', 'packmateMissedAlertDescription');
+    alertDialog.innerHTML = `<div class="packmate-missed-alert-body"><span class="packmate-missed-alert-mark" aria-hidden="true">⚑</span><h2 id="packmateMissedAlertTitle" data-i18n="checklist.missedAlertTitle">${translate('checklist.missedAlertTitle', '누락 기록을 다시 확인해요')}</h2><p id="packmateMissedAlertDescription" data-i18n="checklist.missedAlertDescription">${translate('checklist.missedAlertDescription', '출발이 임박했어요. 목록 상단의 지난 누락 준비물을 직접 확인해 주세요.')}</p><button type="button" data-missed-alert-close data-i18n="common.close">${translate('common.close', '닫기')}</button></div>`;
+    alertDialog.querySelector('[data-missed-alert-close]').addEventListener('click', () => alertDialog.close());
+    alertDialog.addEventListener('click', event => { if (event.target === alertDialog) alertDialog.close(); });
+    document.body.append(alertDialog);
+    return alertDialog;
+  }
+  function maybeShowMissedAlert() {
+    const checklist = document.getElementById('checklistView');
+    const trip = tripForCurrentDetail();
+    if (!checklist || checklist.hidden || !trip || hasShownMissedAlert(trip)) return;
+    const days = daysUntilDeparture(trip.startDate);
+    if (days !== 0 && days !== 1) return;
+    if (!packing?.querySelector('[data-missed-priority-items] .check-row')) return;
+    const dialog = ensureMissedAlertDialog();
+    if (dialog.open) return;
+    try {
+      dialog.showModal();
+      rememberMissedAlert(trip);
+    } catch (_) { /* A missing dialog API must not block checklist use. */ }
   }
   function addMetaChip(host, label, value, tone = '') {
     if (value === undefined || value === null || String(value).trim() === '') return false;
@@ -314,7 +426,16 @@
   document.addEventListener('submit', event => {
     if (event.target.id === 'tripForm') enhanceTripHeader();
   });
-  window.addEventListener('popstate', enhanceTripHeader);
+  window.addEventListener('popstate', () => {
+    enhanceTripHeader();
+    if (history.state?.packmateRoute?.view !== 'checklist' && alertDialog?.open) alertDialog.close();
+  });
+  let alertAccountIdentity = null;
+  window.PACKMATE_ACCOUNT_STATE?.subscribe?.(snapshot => {
+    const nextIdentity = `${snapshot?.status || ''}:${snapshot?.userId || ''}`;
+    if (alertAccountIdentity !== null && nextIdentity !== alertAccountIdentity && alertDialog?.open) alertDialog.close();
+    alertAccountIdentity = nextIdentity;
+  });
 
   if (!window.__packmateBackToTopBound) {
     window.__packmateBackToTopBound = true;

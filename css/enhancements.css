@@ -744,4 +744,48 @@ body .checklist-view #packingItems .packmate-category-items .packing-controls > 
 @media (prefers-reduced-motion: reduce) {
   .checklist-view .packing-controls button { transition: none; }
 }
+
+.readonly-checklist-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 14px;
+  padding: 10px 13px;
+  border: 1px solid #C6DCE5;
+  border-radius: 12px;
+  background: #F2F8FA;
+  color: #426F80;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.readonly-checklist-notice[hidden] { display: none !important; }
+.checklist-view.is-readonly input:disabled,
+.checklist-view.is-readonly button:disabled {
+  cursor: not-allowed !important;
+}
+.checklist-view.is-readonly .item-checkbox:disabled {
+  opacity: .72;
+  border-color: #BEC8CE;
+}
+.checklist-view.is-readonly .quantity-editor button:disabled,
+.checklist-view.is-readonly .packing-controls button:disabled,
+.checklist-view.is-readonly .checklist-header-actions button:disabled {
+  border-color: #E1E4E9;
+  background: #F5F5F7;
+  color: #8A8E97;
+  opacity: .78;
+  box-shadow: none;
+  transform: none;
+}
+.checklist-view.is-readonly .quantity-editor input:disabled {
+  border-color: #C6DCE5;
+  background: #F8FCFE;
+  color: #294F60;
+  -webkit-text-fill-color: #294F60;
+  opacity: 1;
+}
+@media (max-width: 600px) {
+  .readonly-checklist-notice { align-items: flex-start; margin-top: 10px; padding: 9px 11px; font-size: 11px; }
+}
 /* End of PACKMATE UI alignment refinements. */

@@ -9,12 +9,7 @@
     const routeId = history.state?.packmateRoute?.tripId;
     if (!routeId) return false;
     try {
-      const storage = window.PACKMATE_NATIVE_STORAGE;
-      const raw = storage?.getItem
-        ? storage.getItem.call(localStorage, 'packmate.trips.v1')
-        : localStorage.getItem('packmate.trips.v1');
-      const trips = JSON.parse(raw || '[]');
-      const trip = Array.isArray(trips) ? trips.find(item => item?.id === routeId) : null;
+      const trip = window.PACKMATE_APP_DATA?.getTrip?.(routeId) || null;
       if (!trip || !Array.isArray(trip.packing)) return false;
 
       // Category grouping nests rows; checking only direct children falsely marked

@@ -6,7 +6,7 @@
 
 - **GitHub 저장소:** [Deumy316/packmate](https://github.com/Deumy316/packmate)
 - **서비스:** [https://deumy316.github.io/packmate/](https://deumy316.github.io/packmate/)
-- **제출 기준 상태:** 마지막 정상 확인 커밋은 `0195f04`이며, 해당 버전은 GitHub에 Push하고 GitHub Pages에서 표시되는 것을 확인했습니다.
+- **현재 상태:** 배포 전 정적 검증 단계입니다. JavaScript 문법과 `index.html`의 로컬 파일 경로는 확인했으며, 이번 변경의 GitHub Pages 배포와 출발 전 팝업 반복 방지는 별도 브라우저 확인이 필요합니다.
 
 ## 주요 기능
 
@@ -32,8 +32,17 @@
 
 ### 저장된 일정
 
-- 일정을 브라우저에 저장하고, 목록에서 다시 열어 수정하거나 삭제할 수 있습니다.
-- 일정 수정 시 기존 일정 ID와 체크된 준비물 등 기존 목록 데이터가 가능한 범위에서 보존됩니다.
+- 비로그인 상태에서는 일정을 현재 브라우저의 `localStorage`에 저장하고 다시 열 수 있습니다.
+- 로그인 상태에서는 Supabase 인증 계정별 클라우드 일정만 표시하며, 일정 생성·수정·삭제와 체크리스트 변경을 클라우드에 저장합니다.
+- 계정 변경과 로그아웃 시 이전 계정의 화면 데이터와 메모리 캐시를 제거하고, 클라우드 조회 실패 시 로컬 일정으로 대체하지 않습니다.
+- 일정 수정 시 기존 일정 ID와 체크 상태, 수량 등 기존 목록 데이터를 가능한 범위에서 보존합니다.
+
+### 계정·클라우드와 다국어
+
+- Supabase 이메일 인증을 통해 로그인·회원가입·로그아웃 기능을 제공합니다.
+- 클라우드 일정은 사용자 ID와 revision을 확인해 생성·수정·삭제하며, 충돌이나 결과가 불명확한 저장을 자동 재시도하지 않습니다.
+- 한국어·English·Tagalog를 지원하며 선택한 언어는 `packmate.language.v1`에 저장됩니다.
+- 과거 누락 준비물을 다음 일정 상단에 표시하고, 출발 전날 또는 당일에는 일정별 알림 팝업을 표시하도록 구현되어 있습니다. 팝업 반복 방지는 배포 전 브라우저에서 추가 확인해야 합니다.
 
 ## 실행 방법
 
@@ -62,27 +71,30 @@ py -m http.server 8000
 ## 기술 구성
 
 - **HTML, CSS, JavaScript:** 빌드 단계 없이 브라우저에서 실행하는 정적 웹앱
-- **localStorage:** 일정, 개인 필수품, 활동 설정 및 작성 중인 일정 초안 저장
+- **Supabase:** 이메일 인증과 로그인 계정별 일정 저장
+- **localStorage:** 비로그인 일정, 개인 필수품, 활동 설정, 초안, 언어 및 UI 상태 저장
 - **외부 API:** 일정·준비물 추천 기능에 별도 유료 API나 서버가 필요하지 않습니다. 날씨 추천은 사용자가 선택한 예상 날씨에 기반하며 실제 날씨를 조회하지 않습니다.
+- **외부 라이브러리:** 인증과 클라우드 데이터 처리를 위해 Supabase JavaScript SDK 2.x를 CDN에서 불러옵니다.
 - **웹 글꼴:** `index.html`에서 Google Fonts를 선택적으로 요청합니다. 네트워크에서 글꼴을 불러오지 못하면 CSS 대체 글꼴을 사용합니다.
 
-### `index.html`에 연결된 JavaScript 파일 7개
+### 실행 파일 구조
 
-| 파일 | 역할 |
+| 경로 | 역할 |
 | --- | --- |
-| `form-submit-guard.js` | 일정 입력창의 Enter 키가 의도하지 않은 폼 제출을 일으키지 않도록 하고, 명시적인 저장 버튼 제출을 구분합니다. |
-| `storage-native-bridge.js` | 브라우저 저장 메서드를 보관하고 일정·개인 필수품 데이터 형식을 확인해 손상된 기존 데이터를 잘못된 데이터로 덮어쓰지 않도록 보호합니다. |
-| `app.js` | 화면 전환, 일정 생성·수정·삭제, 지역·도시 입력, 활동 검색·선택·관리, 체크리스트와 일정 저장을 처리하는 핵심 앱 로직입니다. |
-| `quantity-render-guard.js` | 준비물 목록이 이미 저장 데이터와 일치하게 렌더링된 경우 중복 렌더링을 유발하는 목록 변경 감지를 억제합니다. |
-| `duration-weather-quantity.js` | 예상 날씨 선택과 계절 안내 UI, 날씨·기간별 추천, 수량 컨트롤 및 수량 저장을 처리합니다. |
-| `check-state-persistence.js` | 저장 호환성 처리 과정에서 기존 준비물의 체크 상태가 바뀌지 않도록 체크 변경을 보존합니다. |
-| `checklist-quality.js` | 준비물 카테고리·필터·접기 UI, 일정 상세 정보 표시, TOP·BOTTOM 문서 스크롤 버튼 등 화면 기능을 제공합니다. |
+| `index.html` | 정적 화면과 CSS·JavaScript 로드 순서 |
+| `css/` | 기본 화면, 보완 UI, 인증·다국어·클라우드 이전 스타일 |
+| `js/core/` | 앱 상태, 추천 엔진과 핵심 화면 연결 |
+| `js/auth/` | Supabase 인증, 계정 상태와 계정별 일정 조회 |
+| `js/integrations/` | Supabase 설정·클라우드 쓰기·이전·비교와 저장 보호 |
+| `js/trips/` | 일정 폼, 활동, 생성·수정·삭제와 로컬 저장 |
+| `js/checklist/` | 체크·수량·준비물·할 일·누락 기록과 체크리스트 UI |
+| `js/i18n/` | 한국어·영어·타갈로그어 번역 적용 |
 
-위 파일명과 순서는 현재 `index.html`의 `<script>` 연결을 기준으로 했습니다. 프로젝트에는 다른 JavaScript 파일도 있지만, 예를 들어 `recommendations.js`는 현재 `index.html`에서 연결하지 않습니다.
+실행 파일은 `index.html`에 직접 연결되거나 인증 모듈에서 동적으로 불러옵니다. 디렉터리 구조와 상대 경로를 함께 유지해야 합니다.
 
 ## 저장 데이터와 제한 사항
 
-앱은 현재 브라우저의 `localStorage`에 다음 데이터를 저장합니다.
+브라우저 저장 호환성과 비로그인 기능은 다음 localStorage 키를 사용합니다. 비로그인 신규 일정은 `packmate.trips.v1`에 저장되지만 체험 중 활동 설정은 메모리에서만 유지될 수 있습니다. 로그인 계정의 일정은 Supabase `user_trips`에서 계정별로 조회·저장하며 공용 localStorage 일정으로 대체하지 않습니다.
 
 | 키 | 저장 내용 |
 | --- | --- |
@@ -90,8 +102,9 @@ py -m http.server 8000
 | `packmate.essentials.v1` | 이후 일정에 재사용할 개인 필수품 |
 | `packmate.activities.v1` | 사용자 지정 활동과 활동별 준비물 설정 |
 | `packmate.draft.v1` | 작성 중인 일정 초안 |
+| `packmate.language.v1` | 선택한 화면 언어 |
 
-데이터는 브라우저와 사이트 주소별로 저장됩니다. 따라서 다른 기기나 다른 브라우저와 자동 동기화되지 않으며, 브라우저 저장 데이터를 삭제하면 기록이 사라질 수 있습니다. 로컬 서버와 GitHub Pages의 저장 공간도 별개입니다. 민감하거나 다른 사람과 공유하면 안 되는 정보는 입력하지 않는 것을 권장합니다.
+비로그인 데이터는 브라우저와 사이트 주소별로 분리되며 다른 기기와 자동 동기화되지 않습니다. 로그인 계정의 클라우드 데이터는 Supabase 인증과 Row Level Security 정책에 의존합니다. 민감하거나 다른 사람과 공유하면 안 되는 정보는 입력하지 않는 것을 권장합니다.
 
 저장 데이터가 유효한 형식이 아니면 앱은 기존 일정·개인 필수품 기록을 보호하기 위해 해당 저장을 중단하고 안내를 표시할 수 있습니다. 이 경우 브라우저 저장 데이터를 임의로 삭제하거나 초기화하지 말고 백업·복구 여부를 먼저 확인하세요.
 
@@ -108,14 +121,14 @@ py -m http.server 8000
 ## 프로젝트 파일
 
 - `index.html` — 앱 화면과 스타일·스크립트 연결
-- `styles.css`, `enhancements.css` — 기본 및 보완 화면 스타일
-- 위 표에 기재한 7개 JavaScript 파일 — 앱 기능과 화면 보조 로직
+- `css/` — 기본 및 보완 화면 스타일
+- `js/` — 앱, 인증, 클라우드, 일정, 체크리스트와 다국어 모듈
 - `PACKMATE_logo.png` — PACKMATE 로고
 - `plan.md` — 프로젝트 기획 문서
 
 ## 배포
 
-GitHub Pages 배포 주소는 [https://deumy316.github.io/packmate/](https://deumy316.github.io/packmate/)입니다. GitHub 저장소는 [Deumy316/packmate](https://github.com/Deumy316/packmate)입니다. 정적 배포 경로가 유지되도록 `index.html`, CSS, 연결된 JavaScript 파일과 로고의 상대 경로를 함께 유지해야 합니다.
+GitHub Pages 배포 주소는 [https://deumy316.github.io/packmate/](https://deumy316.github.io/packmate/)입니다. GitHub 저장소는 [Deumy316/packmate](https://github.com/Deumy316/packmate)입니다. `main` 브랜치의 `/(root)`를 정적 배포 대상으로 사용하고 `index.html`, `css/`, `js/`, 동적으로 불러오는 클라우드 이전 파일과 로고의 상대 경로를 함께 유지해야 합니다. Supabase Dashboard에서는 이 Pages 주소를 Auth Redirect URL에 등록하고 `user_trips` 정책이 `auth.uid()` 기준으로 계정을 격리하는지 별도로 확인해야 합니다.
 
 ---
 
