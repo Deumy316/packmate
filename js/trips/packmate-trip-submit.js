@@ -13,6 +13,7 @@ window.PACKMATE_TRIP_SUBMIT = (() => {
         const getTrips = () => context.getTrips();
         const setTrips = value => context.setTrips(value);
         const setPreviewTrip = value => context.setPreviewTrip(value);
+        const finalizeNewTrip = trip => window.PACKMATE_RECOMMENDATION_PREVIEW?.(trip) || trip;
         let saving = false;
         const insertLocks = new Map();
         const updateLocks = new Map();
@@ -87,7 +88,7 @@ window.PACKMATE_TRIP_SUBMIT = (() => {
             t.id = `preview-${t.id}`;
             t.packing = generated.packing;
             t.tasks = generated.tasks;
-            const recommended = window.PACKMATE_RECOMMENDATION_PREVIEW?.(t) || t;
+            const recommended = finalizeNewTrip(t);
             const preview = freeze(clone(recommended));
             setPreviewTrip(preview);
             setEditingId(null);
@@ -165,7 +166,7 @@ window.PACKMATE_TRIP_SUBMIT = (() => {
             const generated = build(tripData);
             tripData.packing = generated.packing;
             tripData.tasks = generated.tasks;
-            const trip = freeze(clone(tripData));
+            const trip = freeze(clone(finalizeNewTrip(tripData)));
             if (!trip || typeof trip.id !== 'string' || !trip.id.trim() ||
                 !Array.isArray(trip.packing) || !Array.isArray(trip.tasks)) {
                 toast('새 일정과 추천 준비물·할 일 목록을 만들지 못해 저장하지 않았어요. 입력 내용을 확인해 주세요.');
@@ -261,7 +262,7 @@ window.PACKMATE_TRIP_SUBMIT = (() => {
             const generated = build(tripData);
             tripData.packing = generated.packing;
             tripData.tasks = generated.tasks;
-            const trip = freeze(clone(tripData));
+            const trip = freeze(clone(finalizeNewTrip(tripData)));
             const submissionKey = tripSubmissionKey(trip);
             const previousInsert = insertLocks.get(submissionKey);
             if (previousInsert) {
@@ -559,6 +560,11 @@ window.PACKMATE_TRIP_SUBMIT = (() => {
                 const generated = build(t);
                 t.packing = old ? preserve(generated.packing, old.packing || [], true) : generated.packing;
                 t.tasks = old ? preserve(generated.tasks, old.tasks || []) : generated.tasks;
+                if (!old) {
+                    const recommended = finalizeNewTrip(t);
+                    t.packing = recommended.packing;
+                    t.tasks = recommended.tasks;
+                }
                 const before = getTrips();
                 setTrips(old ? getTrips().map(x => x.id === old.id ? t : x) : [...getTrips(), t]);
                 if (!persist()) { setTrips(before); return; }

@@ -277,10 +277,48 @@
     return { ok: true, trips: returnedTrips, removedId: tripId, beforeCount: existingTrips.length };
   }
 
+  function updateGuestItemDone(tripId, itemKind, itemId, done, expectedDone, expectedSession) {
+    if (!localStore) return { ok: false, reason: 'storageUnavailable' };
+    const initialSession = guestDeleteSession(expectedSession);
+    if (!initialSession.ok) return initialSession;
+    const listKey = itemKind === 'task' ? 'tasks' : itemKind === 'packing' ? 'packing' : null;
+    if (!listKey || typeof tripId !== 'string' || !tripId.trim() || typeof itemId !== 'string' || !itemId.trim() ||
+        typeof done !== 'boolean' || typeof expectedDone !== 'boolean') return { ok: false, reason: 'invalidInput' };
+
+    let raw, existingTrips;
+    try { raw = nativeGet.call(localStore, 'packmate.trips.v1'); existingTrips = JSON.parse(raw); }
+    catch (_) { return { ok: false, reason: 'storageUnavailable' }; }
+    if (raw === null || !Array.isArray(existingTrips) || !validRecord('packmate.trips.v1', raw)) {
+      return { ok: false, reason: 'invalidFormat' };
+    }
+    const matchingTrips = existingTrips.filter(trip => trip?.id === tripId);
+    if (matchingTrips.length !== 1 || !Array.isArray(matchingTrips[0][listKey])) return { ok: false, reason: 'tripNotFound' };
+    const matchingItems = matchingTrips[0][listKey].filter(item => item?.id === itemId);
+    if (matchingItems.length !== 1 || Boolean(matchingItems[0].done) !== expectedDone) {
+      return { ok: false, reason: 'storageChanged' };
+    }
+    matchingItems[0].done = done;
+
+    let serializedTrips, returnedTrips;
+    try { serializedTrips = JSON.stringify(existingTrips); returnedTrips = JSON.parse(serializedTrips); }
+    catch (_) { return { ok: false, reason: 'copyFailed' }; }
+    if (!validRecord('packmate.trips.v1', serializedTrips) || !guestDeleteSession(expectedSession).ok) {
+      return { ok: false, reason: 'accountChanged' };
+    }
+    let latestRaw;
+    try { latestRaw = nativeGet.call(localStore, 'packmate.trips.v1'); }
+    catch (_) { return { ok: false, reason: 'storageUnavailable' }; }
+    if (latestRaw !== raw) return { ok: false, reason: 'storageChanged' };
+    try { rawSet.call(localStore, 'packmate.trips.v1', serializedTrips); }
+    catch (_) { return { ok: false, reason: 'storageWriteFailed' }; }
+    return { ok: true, trips: returnedTrips, tripId, itemKind, itemId, done };
+  }
+
   window.PACKMATE_NATIVE_STORAGE = {
     getItem: nativeGet,
     setItem: safeSet,
     appendGuestTrip,
-    deleteGuestTrip
+    deleteGuestTrip,
+    updateGuestItemDone
   };
 })();

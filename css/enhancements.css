@@ -787,5 +787,63 @@ body .checklist-view #packingItems .packmate-category-items .packing-controls > 
 }
 @media (max-width: 600px) {
   .readonly-checklist-notice { align-items: flex-start; margin-top: 10px; padding: 9px 11px; font-size: 11px; }
+
+  /* iOS Safari zooms focused form controls whose computed text is below 16px. */
+  body input:not([type="checkbox"]):not([type="radio"]),
+  body textarea,
+  body select {
+    max-width: 100%;
+    font-size: 16px !important;
+    line-height: 1.25;
+  }
+  .app-shell,.form-view,.checklist-view,.trip-form,.form-grid,.form-field,
+  .activity-field,.activity-options,.activity-option-entry,.custom-activity-entry,
+  .activity-editor,.activity-supply-add,.checklist-columns,.list-panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+  body input[type="date"] {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    inline-size: 100%;
+    min-width: 0;
+    max-width: 100%;
+    max-inline-size: 100%;
+    height: 48px;
+    min-height: 48px;
+    padding: 0 12px;
+    overflow: hidden;
+    font-size: 16px !important;
+    line-height: normal;
+  }
+  body input[type="date"]::-webkit-date-and-time-value {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    line-height: normal;
+    text-align: left;
+  }
+  body input[type="date"]::-webkit-datetime-edit {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    font: inherit;
+    line-height: normal;
+  }
+  @supports (-webkit-touch-callout: none) {
+    body input[type="date"] {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+  }
 }
 /* End of PACKMATE UI alignment refinements. */
