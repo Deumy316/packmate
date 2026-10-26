@@ -39,6 +39,7 @@
     'home.saved.add': { ko: '일정 추가', en: 'Add a trip', tl: 'Magdagdag ng iskedyul' },
     'home.empty.title': { ko: '아직 저장된 일정이 없어요', en: 'No saved trips yet', tl: 'Wala pang naka-save na iskedyul' },
     'home.empty.description': { ko: '첫 일정을 만들고 필요한 준비를 확인해 보세요.', en: 'Create your first trip and see what you need to prepare.', tl: 'Gumawa ng unang iskedyul at tingnan ang mga kailangang ihanda.' },
+    'home.cloudLoading': { ko: '클라우드 일정을 불러오는 중', en: 'Loading cloud trips', tl: 'Nilo-load ang mga iskedyul sa cloud' },
     'home.storage': { ko: '일정은 현재 브라우저에 저장돼요. 다른 기기와 자동으로 동기화되지 않습니다.', en: 'Trips are saved in this browser and are not automatically synced across devices.', tl: 'Naka-save ang mga iskedyul sa browser na ito at hindi awtomatikong nagsi-sync sa ibang device.' },
     'home.storageChecking': { ko: '인증 및 클라우드 일정 상태를 확인하고 있어요.', en: 'Checking your account and cloud trips.', tl: 'Sinusuri ang account at mga iskedyul sa cloud.' },
     'home.storageReadOnly': { ko: '현재 계정의 클라우드 일정을 읽기 전용으로 표시해요. 자동 동기화는 아직 지원하지 않습니다.', en: 'Cloud trips for this account are shown read-only. Automatic sync is not available yet.', tl: 'Read-only ang mga iskedyul sa cloud ng account na ito. Hindi pa available ang awtomatikong sync.' },

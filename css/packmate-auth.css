@@ -124,6 +124,11 @@
 .pm-auth-mode-switch button { padding: 4px; border: 0; background: transparent; color: #696BAC; font: inherit; font-weight: 750; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .pm-auth-mode-switch button:focus-visible, .pm-auth-close:focus-visible, .pm-auth-submit:focus-visible { outline: 3px solid rgba(105,107,172,.34); outline-offset: 2px; }
 body.pm-auth-open { overflow: hidden; }
+.pm-inactivity-dialog h2 { margin: 5px 0 0; color: #2D3137; font-size: 23px; line-height: 1.35; letter-spacing: -.04em; }
+.pm-inactivity-dialog .pm-auth-description { margin-bottom: 20px; overflow-wrap: break-word; word-break: keep-all; text-wrap: pretty; }
+.pm-inactivity-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 9px; }
+.pm-inactivity-actions .pm-auth-submit, .pm-inactivity-actions .pm-auth-button { width: 100%; min-height: 46px; margin: 0; }
+body.pm-inactivity-open { overflow: hidden; }
 .pm-cloud-compare-button { white-space: normal; overflow-wrap: anywhere; }
 .pm-cloud-dialog {
   width: min(680px, calc(100vw - 32px));
@@ -254,6 +259,7 @@ body.pm-auth-open { overflow: hidden; }
   .pm-account-panel .pm-auth-button, .pm-account-panel > .pm-cloud-compare-button, .pm-account-panel > .pm-cloud-migration-button { width: 100%; max-width: none; min-height: 40px; padding: 0 11px; font-size: 11px; }
   .pm-auth-dialog { padding: 21px 18px; border-radius: 17px; }
   .pm-auth-dialog-header h2 { font-size: 21px; }
+  .pm-inactivity-dialog h2 { font-size: 21px; }
   .pm-cloud-dialog { padding: 18px 14px; border-radius: 17px; }
   .pm-cloud-dialog-header h2 { font-size: 19px; }
   .pm-cloud-intro { margin-bottom: 14px; }
@@ -272,6 +278,7 @@ body.pm-auth-open { overflow: hidden; }
   .topbar-right .language-picker select { min-width: 86px; width: 86px; }
   .pm-account-panel .pm-auth-user { gap: 4px; font-size: 10px; }
   .pm-account-panel .pm-auth-button { padding: 0 8px; }
+  .pm-inactivity-actions { grid-template-columns: 1fr; }
   .pm-cloud-metrics > div { grid-template-columns: 1fr; gap: 3px; }
   .pm-cloud-metrics dd { text-align: left; }
   .pm-cloud-preview-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }

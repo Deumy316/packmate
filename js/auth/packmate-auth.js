@@ -20,7 +20,8 @@
       invalidCredentials: '이메일 또는 비밀번호가 올바르지 않습니다.', emailNotConfirmed: '이메일 확인이 필요합니다. 받은 편지함에서 확인 링크를 눌러 주세요.',
       emailExists: '이미 등록된 이메일입니다. 로그인하거나 비밀번호를 확인해 주세요.', invalidEmail: '올바른 이메일 주소를 입력해 주세요.', weakPassword: '비밀번호가 너무 짧거나 안전하지 않습니다. 6자 이상으로 입력해 주세요.',
       rateLimited: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.', networkError: '인증 서버에 연결할 수 없습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.',
-      genericError: '요청을 처리하지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.', logoutFailed: '로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+      genericError: '요청을 처리하지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.', logoutFailed: '로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      inactivityTitle: '곧 자동 로그아웃됩니다', inactivityDescription: '1분 후 자동으로 로그아웃됩니다. 계속 이용하려면 로그인 유지를 선택해 주세요.', keepSignedIn: '로그인 유지'
     },
     en: {
       login: 'Log in', logout: 'Log out', signedIn: 'Signed in', accountMenu: 'Account menu', kicker: 'PACKMATE ACCOUNT', titleLogin: 'Log in with email', titleSignup: 'Create an account',
@@ -38,7 +39,8 @@
       invalidCredentials: 'The email or password is incorrect.', emailNotConfirmed: 'Please confirm your email using the link in your inbox before logging in.',
       emailExists: 'This email is already registered. Log in or check your password.', invalidEmail: 'Enter a valid email address.', weakPassword: 'Choose a stronger password with at least 6 characters.',
       rateLimited: 'Too many requests. Please wait a moment and try again.', networkError: 'Could not connect to the authentication server. Check your internet connection and try again.',
-      genericError: 'The request could not be completed. Check your details and try again.', logoutFailed: 'Could not log out. Please try again shortly.'
+      genericError: 'The request could not be completed. Check your details and try again.', logoutFailed: 'Could not log out. Please try again shortly.',
+      inactivityTitle: 'You will be signed out soon', inactivityDescription: 'You will be signed out automatically in 1 minute. Choose Stay signed in to continue.', keepSignedIn: 'Stay signed in'
     },
     tl: {
       login: 'Mag-log in', logout: 'Mag-log out', signedIn: 'Naka-log in', accountMenu: 'Menu ng account', kicker: 'PACKMATE ACCOUNT', titleLogin: 'Mag-log in gamit ang email', titleSignup: 'Gumawa ng account',
@@ -56,10 +58,16 @@
       invalidCredentials: 'Hindi tama ang email o password.', emailNotConfirmed: 'Kumpirmahin muna ang email gamit ang link sa iyong inbox.',
       emailExists: 'Naka-rehistro na ang email na ito. Mag-log in o tingnan ang password.', invalidEmail: 'Maglagay ng wastong email address.', weakPassword: 'Gumamit ng mas ligtas na password na may hindi bababa sa 6 na character.',
       rateLimited: 'Masyadong maraming request. Maghintay sandali at subukan muli.', networkError: 'Hindi makakakonekta sa authentication server. Suriin ang internet at subukan muli.',
-      genericError: 'Hindi nakumpleto ang request. Suriin ang inilagay at subukan muli.', logoutFailed: 'Hindi nakapag-log out. Subukan muli pagkalipas ng ilang sandali.'
+      genericError: 'Hindi nakumpleto ang request. Suriin ang inilagay at subukan muli.', logoutFailed: 'Hindi nakapag-log out. Subukan muli pagkalipas ng ilang sandali.',
+      inactivityTitle: 'Malapit ka nang ma-log out', inactivityDescription: 'Awtomatiko kang mala-log out pagkalipas ng 1 minuto. Piliin ang Manatiling naka-log in upang magpatuloy.', keepSignedIn: 'Manatiling naka-log in'
     }
   };
 
+  const INACTIVITY_WARNING_MS = 29 * 60 * 1000;
+  const INACTIVITY_LOGOUT_MS = 30 * 60 * 1000;
+  const INACTIVITY_KEY_PREFIX = 'packmate.auth.activity.v1:';
+  const INACTIVITY_SESSION_KEY = 'packmate.auth.activity.current.v1';
+  const AUTH_SESSION_KEY = 'packmate.auth.session.v1';
   const state = {
     client: null, session: null, sdk: 'loading', authInitialized: false, mode: 'login', busy: false, feedback: '', tone: '', lastFocus: null,
     authStateRevision: 0, authInitializationError: false, pendingEmailConfirmation: false, initialAuthLinkError: '', authTransition: '', authGeneration: 0
@@ -136,6 +144,159 @@
     passwordHint: backdrop.querySelector('#pmAuthPasswordHint'), submit: backdrop.querySelector('#pmAuthSubmit'),
     prompt: backdrop.querySelector('#pmAuthModePrompt'), modeSwitch: backdrop.querySelector('#pmAuthModeSwitch'), close: backdrop.querySelector('[data-auth-close]')
   };
+
+  const inactivityBackdrop = document.createElement('div');
+  inactivityBackdrop.className = 'pm-auth-backdrop pm-inactivity-backdrop';
+  inactivityBackdrop.hidden = true;
+  inactivityBackdrop.innerHTML = `
+    <section class="pm-auth-dialog pm-inactivity-dialog" role="dialog" aria-modal="true" aria-labelledby="pmInactivityTitle" aria-describedby="pmInactivityDescription">
+      <p class="pm-auth-kicker">PACKMATE ACCOUNT</p>
+      <h2 id="pmInactivityTitle"></h2>
+      <p class="pm-auth-description" id="pmInactivityDescription"></p>
+      <div class="pm-inactivity-actions">
+        <button class="pm-auth-submit" type="button" data-inactivity-keep></button>
+        <button class="pm-auth-button pm-auth-logout" type="button" data-inactivity-logout></button>
+      </div>
+    </section>`;
+  document.body.append(inactivityBackdrop);
+  const inactivityEl = {
+    title: inactivityBackdrop.querySelector('#pmInactivityTitle'),
+    description: inactivityBackdrop.querySelector('#pmInactivityDescription'),
+    keep: inactivityBackdrop.querySelector('[data-inactivity-keep]'),
+    logout: inactivityBackdrop.querySelector('[data-inactivity-logout]')
+  };
+  let inactivityTimer = 0;
+  let inactivityUserId = '';
+  let lastActivityAt = 0;
+  let inactivityEnding = false;
+  let inactivityLastFocus = null;
+
+  function activityStorageKey(userId) { return `${INACTIVITY_KEY_PREFIX}${encodeURIComponent(userId)}`; }
+  function validActivityRecord(value) {
+    const latestReasonableTime = Date.now() + 60 * 1000;
+    return value && typeof value === 'object' && Number.isFinite(value.lastActivityAt) && value.lastActivityAt > 0 &&
+      value.lastActivityAt <= latestReasonableTime && Number.isFinite(value.signedOutAt) && value.signedOutAt >= 0 &&
+      value.signedOutAt <= latestReasonableTime;
+  }
+  function readActivityRecord(userId) {
+    let record = null;
+    try { record = JSON.parse(window.localStorage.getItem(activityStorageKey(userId)) || 'null'); } catch (_) { /* Fall back to this tab. */ }
+    if (validActivityRecord(record)) return record;
+    try {
+      const sessionRecord = JSON.parse(window.sessionStorage.getItem(INACTIVITY_SESSION_KEY) || 'null');
+      if (sessionRecord?.userId === userId && validActivityRecord(sessionRecord)) return sessionRecord;
+    } catch (_) { /* In-memory timing still applies. */ }
+    return null;
+  }
+  function writeActivityRecord(userId, record) {
+    const serialized = JSON.stringify(record);
+    try { window.localStorage.setItem(activityStorageKey(userId), serialized); } catch (_) { /* Cross-tab sync may be unavailable. */ }
+    try { window.sessionStorage.setItem(INACTIVITY_SESSION_KEY, JSON.stringify({ userId, ...record })); } catch (_) { /* In-memory timing still applies. */ }
+  }
+  function renderInactivityWarning() {
+    inactivityEl.title.textContent = tr('inactivityTitle');
+    inactivityEl.description.textContent = tr('inactivityDescription');
+    inactivityEl.keep.textContent = tr('keepSignedIn');
+    inactivityEl.logout.textContent = tr('logout');
+  }
+  function hideInactivityWarning({ restoreFocus = false } = {}) {
+    if (inactivityBackdrop.hidden) return;
+    inactivityBackdrop.hidden = true;
+    document.body.classList.remove('pm-inactivity-open');
+    if (restoreFocus && inactivityLastFocus?.isConnected) inactivityLastFocus.focus();
+    inactivityLastFocus = null;
+  }
+  function showInactivityWarning() {
+    renderInactivityWarning();
+    if (!inactivityBackdrop.hidden) return;
+    inactivityLastFocus = document.activeElement;
+    inactivityBackdrop.hidden = false;
+    document.body.classList.add('pm-inactivity-open');
+    window.setTimeout(() => inactivityEl.keep.focus(), 0);
+  }
+  function stopInactivity() {
+    window.clearTimeout(inactivityTimer);
+    inactivityTimer = 0;
+    inactivityUserId = '';
+    lastActivityAt = 0;
+    hideInactivityWarning();
+  }
+  function scheduleInactivityCheck() {
+    window.clearTimeout(inactivityTimer);
+    inactivityTimer = 0;
+    const userId = state.session?.user?.id;
+    if (!userId || userId !== inactivityUserId || inactivityEnding || !lastActivityAt) return;
+    const elapsed = Math.max(0, Date.now() - lastActivityAt);
+    if (elapsed >= INACTIVITY_LOGOUT_MS) { void expireForInactivity(true); return; }
+    if (elapsed >= INACTIVITY_WARNING_MS) showInactivityWarning();
+    else hideInactivityWarning();
+    const threshold = elapsed < INACTIVITY_WARNING_MS ? INACTIVITY_WARNING_MS : INACTIVITY_LOGOUT_MS;
+    inactivityTimer = window.setTimeout(scheduleInactivityCheck, Math.max(50, threshold - elapsed + 20));
+  }
+  function recordActivity() {
+    const userId = state.session?.user?.id;
+    if (!userId || state.authTransition || inactivityEnding) return;
+    inactivityUserId = userId;
+    lastActivityAt = Date.now();
+    writeActivityRecord(userId, { lastActivityAt, signedOutAt: 0 });
+    hideInactivityWarning({ restoreFocus: true });
+    scheduleInactivityCheck();
+  }
+  function startInactivity(userId, { reset = false } = {}) {
+    if (!userId) { stopInactivity(); return; }
+    window.clearTimeout(inactivityTimer);
+    hideInactivityWarning();
+    inactivityUserId = userId;
+    const record = reset ? null : readActivityRecord(userId);
+    if (record?.signedOutAt >= record?.lastActivityAt) { void expireForInactivity(false); return; }
+    lastActivityAt = record?.lastActivityAt || Date.now();
+    if (!record) writeActivityRecord(userId, { lastActivityAt, signedOutAt: 0 });
+    scheduleInactivityCheck();
+  }
+  function publishSignedOut(userId) {
+    if (!userId) return;
+    writeActivityRecord(userId, { lastActivityAt: lastActivityAt || Date.now(), signedOutAt: Date.now() });
+  }
+  async function expireForInactivity(broadcast) {
+    const userId = state.session?.user?.id;
+    if (!userId || inactivityEnding) return;
+    inactivityEnding = true;
+    if (broadcast) publishSignedOut(userId);
+    stopInactivity();
+    state.authTransition = 'signing-out';
+    state.session = null;
+    state.authGeneration += 1;
+    notifyAuthSubscribers();
+    renderTopbar();
+    try { await state.client?.auth.signOut({ scope: 'local' }); } catch (_) { /* Local state remains signed out at the deadline. */ }
+    try { window.sessionStorage.removeItem(AUTH_SESSION_KEY); } catch (_) { /* In-memory auth state remains signed out. */ }
+    state.authTransition = '';
+    state.session = null;
+    state.authInitialized = true;
+    inactivityEnding = false;
+    notifyAuthSubscribers();
+    renderTopbar();
+  }
+  function handleMeaningfulActivity(event) {
+    if (!state.session?.user?.id || inactivityEnding) return;
+    if (!inactivityBackdrop.hidden && event.target?.closest?.('.pm-inactivity-backdrop')) return;
+    if (event.type === 'keydown' && (event.repeat || ['Shift', 'Control', 'Alt', 'Meta'].includes(event.key))) return;
+    recordActivity();
+  }
+  function handleActivityStorage(event) {
+    const userId = state.session?.user?.id;
+    if (!userId || event.key !== activityStorageKey(userId) || !event.newValue) return;
+    let record;
+    try { record = JSON.parse(event.newValue); } catch (_) { return; }
+    if (!validActivityRecord(record)) return;
+    if (record.signedOutAt >= record.lastActivityAt) { void expireForInactivity(false); return; }
+    if (record.lastActivityAt <= lastActivityAt) return;
+    inactivityUserId = userId;
+    lastActivityAt = record.lastActivityAt;
+    try { window.sessionStorage.setItem(INACTIVITY_SESSION_KEY, JSON.stringify({ userId, ...record })); } catch (_) { /* Cross-tab record remains authoritative. */ }
+    hideInactivityWarning({ restoreFocus: true });
+    scheduleInactivityCheck();
+  }
 
   function setFeedback(key, tone = '') {
     state.feedback = key;
@@ -309,6 +470,7 @@
         if (data?.session) {
           state.session = data.session;
           state.busy = false;
+          startInactivity(data.session.user?.id, { reset: true });
           notifyAuthSubscribers();
           closeModal();
           renderTopbar();
@@ -331,6 +493,7 @@
         }
         state.session = session;
         state.busy = false;
+        startInactivity(session.user?.id, { reset: true });
         notifyAuthSubscribers();
         closeModal();
         renderTopbar();
@@ -345,6 +508,8 @@
   async function handleLogout() {
     if (!state.client) return;
     const previousSession = state.session;
+    const previousUserId = previousSession?.user?.id || '';
+    stopInactivity();
     state.authTransition = 'signing-out';
     state.session = null;
     state.authGeneration += 1;
@@ -356,12 +521,14 @@
       state.authTransition = '';
       state.session = null;
       state.feedback = '';
+      publishSignedOut(previousUserId);
       notifyAuthSubscribers();
       renderTopbar();
     } catch (_) {
       state.authTransition = '';
       state.session = previousSession;
       state.authGeneration += 1;
+      startInactivity(previousUserId);
       notifyAuthSubscribers();
       state.mode = 'login';
       state.feedback = 'logoutFailed';
@@ -382,6 +549,8 @@
   el.form.addEventListener('submit', handleSubmit);
   el.modeSwitch.addEventListener('click', toggleMode);
   el.close.addEventListener('click', closeModal);
+  inactivityEl.keep.addEventListener('click', recordActivity);
+  inactivityEl.logout.addEventListener('click', handleLogout);
   backdrop.addEventListener('click', event => { if (event.target === backdrop) closeModal(); });
   accountToggle?.addEventListener('click', () => {
     if (!mobileHeader.matches || !accountMenu) return;
@@ -398,6 +567,14 @@
   mobileHeader.addEventListener('change', syncAccountMenu);
   syncAccountMenu();
   document.addEventListener('keydown', event => {
+    if (!inactivityBackdrop.hidden) {
+      if (event.key === 'Tab') {
+        const first = inactivityEl.keep, last = inactivityEl.logout;
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+      return;
+    }
     if (event.key === 'Escape' && backdrop.hidden && accountMenu && !accountMenu.hidden && mobileHeader.matches) { closeAccountMenu({ restoreFocus: true }); return; }
     if (backdrop.hidden) return;
     if (event.key === 'Escape') { closeModal(); return; }
@@ -409,8 +586,15 @@
     }
   });
   document.addEventListener('change', event => {
-    if (event.target?.id === 'packmateLanguageSelect') renderModal();
+    if (event.target?.id === 'packmateLanguageSelect') { renderModal(); renderInactivityWarning(); }
   });
+  document.addEventListener('pointerdown', handleMeaningfulActivity, { capture: true, passive: true });
+  document.addEventListener('keydown', handleMeaningfulActivity, { capture: true });
+  document.addEventListener('wheel', handleMeaningfulActivity, { capture: true, passive: true });
+  window.addEventListener('storage', handleActivityStorage);
+  window.addEventListener('pageshow', scheduleInactivityCheck);
+  window.addEventListener('focus', scheduleInactivityCheck);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') scheduleInactivityCheck(); });
 
   async function loadSdk() {
     const configState = configurationState();
@@ -444,18 +628,34 @@
   function initializeClient() {
     try {
       state.client = window.supabase.createClient(String(config.url).trim(), String(config.anonKey).trim(), {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storage: window.sessionStorage,
+          storageKey: AUTH_SESSION_KEY
+        }
       });
       state.sdk = 'ready';
       state.client.auth.onAuthStateChange((event, session) => {
+        const wasInitialized = state.authInitialized;
+        const beforeUserId = state.session?.user?.id || '';
         const before = identityOf(state.session?.user);
         const after = identityOf(session?.user);
+        const afterUserId = session?.user?.id || '';
+        if (beforeUserId && afterUserId && beforeUserId !== afterUserId) publishSignedOut(beforeUserId);
         if (before !== after) state.authGeneration += 1;
         state.authStateRevision += 1;
         state.authInitializationError = false;
         state.authTransition = '';
         state.session = session || null;
         state.authInitialized = true;
+        if (state.session?.user?.id) {
+          startInactivity(state.session.user.id, { reset: event === 'SIGNED_IN' && wasInitialized && before !== after });
+        } else {
+          if (event === 'SIGNED_OUT' && beforeUserId) publishSignedOut(beforeUserId);
+          stopInactivity();
+        }
         renderTopbar();
         notifyAuthSubscribers();
         if (state.pendingEmailConfirmation && event === 'SIGNED_IN' && state.session) {
@@ -475,6 +675,8 @@
             if (before !== identityOf(state.session?.user)) state.authGeneration += 1;
             state.authInitializationError = false;
             state.authInitialized = true;
+            if (state.session?.user?.id) startInactivity(state.session.user.id);
+            else stopInactivity();
           }
         }
         notifyAuthSubscribers();
