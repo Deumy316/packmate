@@ -189,6 +189,56 @@ window.PACKMATE_TRIP_STORAGE = (() => {
             return { ok: true, trips: savedTrips };
         }
 
+        function getGuestDeleteSession() {
+            try {
+                const state = window.PACKMATE_APP_DATA?.getState?.();
+                const account = window.PACKMATE_ACCOUNT_STATE?.getState?.();
+                const auth = window.PACKMATE_AUTH?.getState?.();
+                const loggedOut = value => value === null || value === undefined || value === "";
+                if (state?.mode !== "guest-preview" || state.status !== "unauthenticated" ||
+                    !loggedOut(state.userId) || account?.status !== "ready" ||
+                    !loggedOut(account.userId) || auth?.status !== "ready" || !loggedOut(auth.user?.id) ||
+                    !Number.isSafeInteger(account.generation) || account.generation < 0 ||
+                    !Number.isSafeInteger(auth.generation) || auth.generation < 0 ||
+                    state.generation !== account.generation) return null;
+                return Object.freeze({
+                    accountGeneration: account.generation,
+                    authGeneration: auth.generation
+                });
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function sameGuestDeleteSession(first, second) {
+            return !!first && !!second &&
+                first.accountGeneration === second.accountGeneration &&
+                first.authGeneration === second.authGeneration;
+        }
+
+        function deleteGuestTrip(tripId, expectedSession) {
+            const initialSession = getGuestDeleteSession();
+            if (!sameGuestDeleteSession(initialSession, expectedSession)) {
+                return { ok: false, reason: "accountChanged" };
+            }
+            const remove = window.PACKMATE_NATIVE_STORAGE?.deleteGuestTrip;
+            if (typeof remove !== "function") return { ok: false, reason: "storageUnavailable" };
+
+            let result;
+            try { result = remove(tripId, initialSession); }
+            catch (_) { return { ok: false, reason: "storageWriteFailed" }; }
+            if (!result?.ok || !Array.isArray(result.trips)) {
+                return { ok: false, reason: result?.reason || "storageWriteFailed" };
+            }
+            if (result.removedId !== tripId || result.beforeCount !== result.trips.length + 1 ||
+                result.trips.some(trip => trip?.id === tripId) ||
+                !sameGuestDeleteSession(initialSession, getGuestDeleteSession())) {
+                return { ok: false, reason: "accountChanged" };
+            }
+            try { return { ok: true, trips: JSON.parse(JSON.stringify(result.trips)) }; }
+            catch (_) { return { ok: false, reason: "copyFailed" }; }
+        }
+
         function save(k, v) {
             if (PERSONAL_KEYS.has(k) && !canMutate()) return false;
 
@@ -206,7 +256,7 @@ window.PACKMATE_TRIP_STORAGE = (() => {
             return canMutate() && save(TRIPS, getTrips());
         }
 
-        return Object.freeze({ loadLocalTrips, appendGuestTrip, save, persist });
+        return Object.freeze({ loadLocalTrips, appendGuestTrip, getGuestDeleteSession, deleteGuestTrip, save, persist });
     }
 
     return Object.freeze({ createStorage });

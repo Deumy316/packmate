@@ -7,7 +7,7 @@
     ko: {
       login: '로그인', logout: '로그아웃', signedIn: '로그인됨', accountMenu: '계정 메뉴', kicker: 'PACKMATE ACCOUNT', titleLogin: '이메일로 로그인', titleSignup: '계정 만들기',
       description: '로그인하면 계정의 클라우드 일정을 읽기 전용으로 볼 수 있어요. 자동 동기화와 클라우드 저장은 아직 지원하지 않습니다.',
-      email: '이메일', emailPlaceholder: 'name@example.com', password: '비밀번호', passwordPlaceholder: '비밀번호 입력', passwordHint: '비밀번호는 Supabase Auth로만 전송되며 앱에서 저장하거나 기록하지 않습니다.',
+      email: '이메일', emailPlaceholder: 'name@example.com', password: '비밀번호', passwordPlaceholder: '비밀번호 입력', passwordHint: '비밀번호는 Supabase Auth로만 전송되며 앱에서 저장하거나 기록하지 않습니다.', signupPasswordHint: '비밀번호는 최소 6자 이상 입력해 줘. Supabase Auth로만 전송되며 앱에서 저장하거나 기록하지 않습니다.',
       submitLogin: '로그인', submitSignup: '회원가입', switchToSignup: '계정이 없으신가요? 회원가입', switchToLogin: '이미 계정이 있으신가요? 로그인', close: '닫기',
       setupMissing: 'Supabase 설정이 필요합니다. supabase-config.js에 프로젝트 URL과 브라우저용 publishable/anon 키를 입력해 주세요. 비밀 키는 입력하지 마세요.',
       sdkLoading: '인증 서비스를 불러오는 중입니다…', sdkFailed: '인증 SDK를 불러오지 못했습니다. 네트워크 연결과 CDN 접근을 확인해 주세요. 기존 로컬 기능은 계속 사용할 수 있습니다.',
@@ -25,7 +25,7 @@
     en: {
       login: 'Log in', logout: 'Log out', signedIn: 'Signed in', accountMenu: 'Account menu', kicker: 'PACKMATE ACCOUNT', titleLogin: 'Log in with email', titleSignup: 'Create an account',
       description: 'Log in to view your account’s cloud trips read-only. Automatic sync and cloud saving are not available yet.',
-      email: 'Email', emailPlaceholder: 'name@example.com', password: 'Password', passwordPlaceholder: 'Enter your password', passwordHint: 'Your password is sent only to Supabase Auth. PACKMATE does not store or log it.',
+      email: 'Email', emailPlaceholder: 'name@example.com', password: 'Password', passwordPlaceholder: 'Enter your password', passwordHint: 'Your password is sent only to Supabase Auth. PACKMATE does not store or log it.', signupPasswordHint: 'Enter a password with at least 6 characters. It is sent only to Supabase Auth and is not stored or logged by PACKMATE.',
       submitLogin: 'Log in', submitSignup: 'Sign up', switchToSignup: 'New to PACKMATE? Create an account', switchToLogin: 'Already have an account? Log in', close: 'Close',
       setupMissing: 'Supabase setup is required. Add your project URL and browser publishable/anon key in supabase-config.js. Do not add a secret key.',
       sdkLoading: 'Connecting to the authentication service…', sdkFailed: 'The authentication SDK could not be loaded. Check your network and CDN access. Existing local features remain available.',
@@ -43,7 +43,7 @@
     tl: {
       login: 'Mag-log in', logout: 'Mag-log out', signedIn: 'Naka-log in', accountMenu: 'Menu ng account', kicker: 'PACKMATE ACCOUNT', titleLogin: 'Mag-log in gamit ang email', titleSignup: 'Gumawa ng account',
       description: 'Mag-log in upang makita nang read-only ang mga iskedyul sa cloud ng account. Hindi pa available ang awtomatikong sync at cloud saving.',
-      email: 'Email', emailPlaceholder: 'name@example.com', password: 'Password', passwordPlaceholder: 'Ilagay ang password', passwordHint: 'Ipinapadala lang ang password sa Supabase Auth. Hindi ito iniimbak o itinatala ng PACKMATE.',
+      email: 'Email', emailPlaceholder: 'name@example.com', password: 'Password', passwordPlaceholder: 'Ilagay ang password', passwordHint: 'Ipinapadala lang ang password sa Supabase Auth. Hindi ito iniimbak o itinatala ng PACKMATE.', signupPasswordHint: 'Maglagay ng password na may hindi bababa sa 6 na character. Ipinapadala lang ito sa Supabase Auth at hindi iniimbak o itinatala ng PACKMATE.',
       submitLogin: 'Mag-log in', submitSignup: 'Mag-sign up', switchToSignup: 'Wala pang account? Gumawa ng account', switchToLogin: 'May account na? Mag-log in', close: 'Isara',
       setupMissing: 'Kailangan ang Supabase setup. Ilagay ang project URL at browser publishable/anon key sa supabase-config.js. Huwag maglagay ng secret key.',
       sdkLoading: 'Kumokonekta sa serbisyo ng pagpapatunay…', sdkFailed: 'Hindi na-load ang authentication SDK. Suriin ang internet at access sa CDN. Patuloy na gagana ang mga lokal na feature.',
@@ -204,7 +204,7 @@
     el.email.placeholder = tr('emailPlaceholder');
     el.password.placeholder = tr('passwordPlaceholder');
     el.password.autocomplete = signup ? 'new-password' : 'current-password';
-    el.passwordHint.textContent = tr('passwordHint');
+    el.passwordHint.textContent = tr(signup ? 'signupPasswordHint' : 'passwordHint');
     el.submit.textContent = tr(signup ? 'submitSignup' : 'submitLogin');
     el.prompt.textContent = signup ? tr('switchToLogin').split('?')[0] + '?' : tr('switchToSignup').split('?')[0] + '?';
     el.modeSwitch.textContent = signup ? tr('switchToLogin').slice(tr('switchToLogin').indexOf('?') + 1).trim() : tr('switchToSignup').slice(tr('switchToSignup').indexOf('?') + 1).trim();

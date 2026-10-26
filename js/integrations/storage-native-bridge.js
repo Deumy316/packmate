@@ -200,9 +200,87 @@
     return { ok: true, trips: returnedTrips };
   }
 
+  function guestDeleteSession(expected) {
+    if (!expected || typeof expected !== 'object' ||
+        !Number.isSafeInteger(expected.accountGeneration) || expected.accountGeneration < 0 ||
+        !Number.isSafeInteger(expected.authGeneration) || expected.authGeneration < 0) {
+      return { ok: false, reason: 'invalidGeneration' };
+    }
+    try {
+      const appState = window.PACKMATE_APP_DATA?.getState?.();
+      const account = window.PACKMATE_ACCOUNT_STATE?.getState?.();
+      const auth = window.PACKMATE_AUTH?.getState?.();
+      const loggedOut = value => value === null || value === undefined || value === '';
+      if (appState?.mode !== 'guest-preview' || appState.status !== 'unauthenticated' ||
+          !loggedOut(appState.userId) || appState.generation !== expected.accountGeneration ||
+          account?.status !== 'ready' || !loggedOut(account.userId) ||
+          account.generation !== expected.accountGeneration ||
+          auth?.status !== 'ready' || !loggedOut(auth.user?.id) ||
+          auth.generation !== expected.authGeneration) {
+        return { ok: false, reason: 'accountChanged' };
+      }
+      return { ok: true };
+    } catch (_) {
+      return { ok: false, reason: 'accountUnavailable' };
+    }
+  }
+
+  function deleteGuestTrip(tripId, expectedSession) {
+    if (!localStore) return { ok: false, reason: 'storageUnavailable' };
+    const initialSession = guestDeleteSession(expectedSession);
+    if (!initialSession.ok) return initialSession;
+    if (typeof tripId !== 'string' || !tripId.trim()) return { ok: false, reason: 'invalidTripId' };
+
+    let raw;
+    try { raw = nativeGet.call(localStore, 'packmate.trips.v1'); }
+    catch (_) { return { ok: false, reason: 'storageUnavailable' }; }
+    if (raw === null) return { ok: false, reason: 'tripNotFound' };
+
+    let existingTrips;
+    try { existingTrips = JSON.parse(raw); }
+    catch (_) { return { ok: false, reason: 'invalidJson' }; }
+    if (!Array.isArray(existingTrips) || !validRecord('packmate.trips.v1', raw)) {
+      return { ok: false, reason: 'invalidFormat' };
+    }
+    const ids = new Set();
+    for (const trip of existingTrips) {
+      if (ids.has(trip.id)) return { ok: false, reason: 'duplicateTripId' };
+      ids.add(trip.id);
+    }
+    if (!ids.has(tripId)) return { ok: false, reason: 'tripNotFound' };
+
+    const remainingTrips = existingTrips.filter(trip => trip.id !== tripId);
+    if (remainingTrips.length !== existingTrips.length - 1) return { ok: false, reason: 'duplicateTripId' };
+    let serializedTrips;
+    let returnedTrips;
+    try {
+      serializedTrips = JSON.stringify(remainingTrips);
+      returnedTrips = JSON.parse(serializedTrips);
+    } catch (_) {
+      return { ok: false, reason: 'copyFailed' };
+    }
+    if (!validRecord('packmate.trips.v1', serializedTrips)) return { ok: false, reason: 'copyFailed' };
+
+    const currentSession = guestDeleteSession(expectedSession);
+    if (!currentSession.ok) return currentSession;
+    let latestRaw;
+    try { latestRaw = nativeGet.call(localStore, 'packmate.trips.v1'); }
+    catch (_) { return { ok: false, reason: 'storageUnavailable' }; }
+    if (latestRaw !== raw) return { ok: false, reason: 'storageChanged' };
+
+    try { rawSet.call(localStore, 'packmate.trips.v1', serializedTrips); }
+    catch (error) {
+      const isQuotaError = error?.name === 'QuotaExceededError' ||
+        error?.name === 'NS_ERROR_DOM_QUOTA_REACHED' || error?.code === 22 || error?.code === 1014;
+      return { ok: false, reason: isQuotaError ? 'storageFull' : 'storageWriteFailed' };
+    }
+    return { ok: true, trips: returnedTrips, removedId: tripId, beforeCount: existingTrips.length };
+  }
+
   window.PACKMATE_NATIVE_STORAGE = {
     getItem: nativeGet,
     setItem: safeSet,
-    appendGuestTrip
+    appendGuestTrip,
+    deleteGuestTrip
   };
 })();
