@@ -13,7 +13,7 @@ window.PACKMATE_TRIP_SUBMIT = (() => {
         const getTrips = () => context.getTrips();
         const setTrips = value => context.setTrips(value);
         const setPreviewTrip = value => context.setPreviewTrip(value);
-        const finalizeNewTrip = trip => window.PACKMATE_RECOMMENDATION_PREVIEW?.(trip) || trip;
+        const finalizeNewTrip = trip => { const recommended = window.PACKMATE_RECOMMENDATION_PREVIEW?.(trip) || trip, dismissals = window.PACKMATE_MISSED_ATTENTION?.carryForward(getTrips()) || []; if (dismissals.length) recommended.missedAttentionDismissals = dismissals; return recommended };
         let saving = false;
         const insertLocks = new Map();
         const updateLocks = new Map();

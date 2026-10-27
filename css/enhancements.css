@@ -661,8 +661,8 @@ body .checklist-view #packingItems .packmate-category-items .quantity-editor inp
 /* Keep the missed-record label together, allowing a natural two-word wrap when needed. */
 body .checklist-view #packingItems .packmate-category-items .packing-controls > .missed-button {
   display: inline-flex;
-  flex: 0 0 64px;
-  width: 64px;
+  flex: 0 0 auto;
+  width: auto;
   min-width: 64px;
   height: 36px;
   min-height: 36px;
@@ -672,7 +672,7 @@ body .checklist-view #packingItems .packmate-category-items .packing-controls > 
   color: #8A6665;
   font-size: 11px;
   line-height: 1.15;
-  white-space: normal;
+  white-space: nowrap;
   word-break: keep-all;
   overflow-wrap: normal;
   text-align: center;
@@ -686,9 +686,9 @@ body .checklist-view #packingItems .packmate-category-items .packing-controls > 
 }
 @media (max-width: 380px) {
   body .checklist-view #packingItems .packmate-category-items .packing-controls > .missed-button {
-    flex-basis: 60px;
-    width: 60px;
-    min-width: 60px;
+    flex-basis: auto;
+    width: auto;
+    min-width: 58px;
     font-size: 10px;
   }
   body .checklist-view #packingItems .packmate-category-items .packing-controls > .item-action-button {

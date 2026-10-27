@@ -314,11 +314,53 @@
     return { ok: true, trips: returnedTrips, tripId, itemKind, itemId, done };
   }
 
+  function changeGuestMissedAttention(tripId, itemId, action, expectedSession) {
+    if (!localStore) return { ok: false, reason: 'storageUnavailable' };
+    const initialSession = guestDeleteSession(expectedSession);
+    if (!initialSession.ok) return initialSession;
+    if (typeof tripId !== 'string' || !tripId.trim() || typeof itemId !== 'string' || !itemId.trim() || !['dismiss', 'mark'].includes(action)) return { ok: false, reason: 'invalidInput' };
+    let raw, existingTrips;
+    try { raw = nativeGet.call(localStore, 'packmate.trips.v1'); existingTrips = JSON.parse(raw); }
+    catch (_) { return { ok: false, reason: 'storageUnavailable' }; }
+    if (raw === null || !Array.isArray(existingTrips) || !validRecord('packmate.trips.v1', raw)) return { ok: false, reason: 'invalidFormat' };
+    const matches = existingTrips.filter(trip => trip?.id === tripId), trip = matches[0];
+    if (matches.length !== 1 || !Array.isArray(trip.packing)) return { ok: false, reason: 'tripNotFound' };
+    const items = trip.packing.filter(item => item?.id === itemId), item = items[0];
+    if (items.length !== 1) return { ok: false, reason: 'itemNotFound' };
+    const attention = window.PACKMATE_MISSED_ATTENTION;
+    if (!attention) return { ok: false, reason: 'attentionUnavailable' };
+    const newId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    if (action === 'dismiss') {
+      const record = attention.createDismissal(item.name, existingTrips, newId());
+      if (!record) return { ok: false, reason: 'noActiveMissedAttention' };
+      trip.missedAttentionDismissals ||= [];
+      if (!Array.isArray(trip.missedAttentionDismissals) || trip.missedAttentionDismissals.some(value => value?.id === record.id)) return { ok: false, reason: 'invalidFormat' };
+      trip.missedAttentionDismissals.push(record);
+    } else {
+      trip.missedItems ||= [];
+      if (!Array.isArray(trip.missedItems)) return { ok: false, reason: 'invalidFormat' };
+      if (!attention.isActive(item.name, existingTrips)) trip.missedItems.push({ id: newId(), name: item.name, createdAt: Date.now() });
+      item.done = false;
+    }
+    let serializedTrips, returnedTrips;
+    try { serializedTrips = JSON.stringify(existingTrips); returnedTrips = JSON.parse(serializedTrips); }
+    catch (_) { return { ok: false, reason: 'copyFailed' }; }
+    if (!validRecord('packmate.trips.v1', serializedTrips) || !guestDeleteSession(expectedSession).ok) return { ok: false, reason: 'accountChanged' };
+    let latestRaw;
+    try { latestRaw = nativeGet.call(localStore, 'packmate.trips.v1'); }
+    catch (_) { return { ok: false, reason: 'storageUnavailable' }; }
+    if (latestRaw !== raw) return { ok: false, reason: 'storageChanged' };
+    try { rawSet.call(localStore, 'packmate.trips.v1', serializedTrips); }
+    catch (_) { return { ok: false, reason: 'storageWriteFailed' }; }
+    return { ok: true, trips: returnedTrips, tripId, itemId, action, name: item.name };
+  }
+
   window.PACKMATE_NATIVE_STORAGE = {
     getItem: nativeGet,
     setItem: safeSet,
     appendGuestTrip,
     deleteGuestTrip,
-    updateGuestItemDone
+    updateGuestItemDone,
+    changeGuestMissedAttention
   };
 })();

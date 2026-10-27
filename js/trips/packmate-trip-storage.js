@@ -256,6 +256,19 @@ window.PACKMATE_TRIP_STORAGE = (() => {
             catch (_) { return { ok: false, reason: "copyFailed" }; }
         }
 
+        function changeGuestMissedAttention(tripId, itemId, action, expectedSession) {
+            const initialSession = getGuestDeleteSession();
+            if (!sameGuestDeleteSession(initialSession, expectedSession)) return { ok: false, reason: "accountChanged" };
+            const change = window.PACKMATE_NATIVE_STORAGE?.changeGuestMissedAttention;
+            if (typeof change !== "function") return { ok: false, reason: "storageUnavailable" };
+            let result;
+            try { result = change(tripId, itemId, action, initialSession); }
+            catch (_) { return { ok: false, reason: "storageWriteFailed" }; }
+            if (!result?.ok || !Array.isArray(result.trips) || result.tripId !== tripId || result.itemId !== itemId || result.action !== action || !sameGuestDeleteSession(initialSession, getGuestDeleteSession())) return { ok: false, reason: result?.reason || "accountChanged" };
+            try { return { ...result, trips: JSON.parse(JSON.stringify(result.trips)) }; }
+            catch (_) { return { ok: false, reason: "copyFailed" }; }
+        }
+
         function save(k, v) {
             if (PERSONAL_KEYS.has(k) && !canMutate()) return false;
 
@@ -273,7 +286,7 @@ window.PACKMATE_TRIP_STORAGE = (() => {
             return canMutate() && save(TRIPS, getTrips());
         }
 
-        return Object.freeze({ loadLocalTrips, appendGuestTrip, getGuestDeleteSession, deleteGuestTrip, updateGuestItemDone, save, persist });
+        return Object.freeze({ loadLocalTrips, appendGuestTrip, getGuestDeleteSession, deleteGuestTrip, updateGuestItemDone, changeGuestMissedAttention, save, persist });
     }
 
     return Object.freeze({ createStorage });

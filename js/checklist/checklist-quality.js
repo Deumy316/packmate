@@ -130,7 +130,7 @@
     const trip = tripForCurrentDetail();
     if (!itemId || !Array.isArray(trip?.packing)) return false;
     const matches = trip.packing.filter(item => item && String(item.id) === itemId);
-    return matches.length === 1 && (matches[0].source === 'missed' || matches[0].previouslyMissed === true);
+    return matches.length === 1 && (matches[0].source === 'missed' || matches[0].previouslyMissed === true) && window.PACKMATE_MISSED_ATTENTION?.isActive(matches[0].name, window.PACKMATE_APP_DATA?.getTrips?.() || []) !== false;
   }
   function makeMissedPriority() {
     const panel = document.createElement('section');
@@ -159,6 +159,8 @@
         missed.forEach(row => {
           delete row.dataset.packmateCategory;
           row.dataset.packmatePriority = 'missed';
+          const action = row.querySelector('[data-mark-missed]');
+          if (action) { const source = window.PACKMATE_APP_DATA, state = source?.getState?.(); action.removeAttribute('data-mark-missed'); action.dataset.dismissMissedAttention = row.querySelector('[data-item-kind="packing"][data-item-id]')?.dataset.itemId || ''; action.dataset.i18n = 'checklist.dismissMissedAttention'; action.textContent = translate('checklist.dismissMissedAttention', '누락 해제'); action.disabled = !!state?.preview || !(source?.canMutate?.() || source?.canUpdateGuestChecklist?.('packing') || source?.canUpdateCloudPacking?.()); }
           content.append(row);
         });
       }

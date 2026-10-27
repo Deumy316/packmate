@@ -28,7 +28,7 @@
     }
     window.PACKMATE_APP_DATA = Object.freeze({ getState: dataSnapshot, getTrips: () => trips, getTrip: displayTrip, updatePreview: updatePreviewTrip, updateCloudPacking: updateCloudPackingItem, canMutate, canPlan, canUpdateCloudPacking: () => cloudPackingCheckAllowed(activeId), canUpdateGuestChecklist: kind => (kind === 'task' || kind === 'packing') && dataState.mode === 'guest-preview' && dataState.status === 'unauthenticated' && Boolean(displayTrip(activeId) && getGuestDeleteSession()), canWriteLocal: key => !PERSONAL_KEYS.has(key) || canMutate() });
     function updateStateCopy() { const key = dataState.mode === 'cloud-readonly' ? 'cloudReadOnly' : dataState.status === 'unauthenticated' ? 'privateHidden' : dataState.status === 'error' ? 'cloudError' : 'checking', storageKeys = { checking: 'home.storageChecking', cloudReadOnly: 'home.storageReadOnly', privateHidden: 'home.storageHidden', cloudError: 'home.storageError' }, status = $('#accountStorageStatus'), storage = $('.storage-note [data-i18n]'), t = window.PACKMATE_I18N?.t; if (status) { status.dataset.i18n = `status.${key}`; status.textContent = t?.(`status.${key}`) || status.textContent } if (storage) { storage.dataset.i18n = storageKeys[key]; storage.textContent = t?.(storageKeys[key]) || storage.textContent } }
-    function toastText(source) { const messages = window.PACKMATE_I18N_FORM?.messages, language = window.PACKMATE_I18N?.language || 'ko', index = language === 'en' ? 1 : language === 'tl' ? 2 : 0; if (!messages || index === 0) return source; for (const values of Object.values(messages)) if (values?.[0] === source) return values[index] || source; if (/클라우드.*(?:저장|삭제|수정|추가)|revision|INSERT|UPDATE|DELETE/.test(source)) return messages[/실패|못|없어|확인할 수 없|잠갔|중단|오류|거부/.test(source) ? 'feedback.cloudSaveFailed' : 'feedback.cloudSaved']?.[index] || source; if (/저장/.test(source) && /실패|못|없어|오류/.test(source)) return messages['feedback.saveFailed']?.[index] || source; return source } function toast(s, tone = '') { const failed = tone === 'error' || (!tone && /실패|못|없어|확인할 수 없|잠갔|중단|오류|거부/.test(s)), success = tone === 'success' || (!failed && /저장했|저장하고|삭제했|추가했|수정했|반영했/.test(s)); el.toast.textContent = toastText(s); el.toast.classList.toggle('is-error', failed); el.toast.classList.toggle('is-success', success); el.toast.setAttribute('role', failed ? 'alert' : 'status'); el.toast.setAttribute('aria-live', failed ? 'assertive' : 'polite'); el.toast.classList.add('is-visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.toast.classList.remove('is-visible'), failed ? 4200 : 2800) } window.PACKMATE_TOAST = Object.freeze({ show: toast }); function readonlyNotice() { toast('클라우드 일정은 현재 읽기 전용이에요.') } const { save, persist, loadLocalTrips, appendGuestTrip, getGuestDeleteSession, deleteGuestTrip, updateGuestItemDone } = window.PACKMATE_TRIP_STORAGE.createStorage({
+    function toastText(source) { const messages = window.PACKMATE_I18N_FORM?.messages, language = window.PACKMATE_I18N?.language || 'ko', index = language === 'en' ? 1 : language === 'tl' ? 2 : 0; if (!messages || index === 0) return source; for (const values of Object.values(messages)) if (values?.[0] === source) return values[index] || source; if (/클라우드.*(?:저장|삭제|수정|추가)|revision|INSERT|UPDATE|DELETE/.test(source)) return messages[/실패|못|없어|확인할 수 없|잠갔|중단|오류|거부/.test(source) ? 'feedback.cloudSaveFailed' : 'feedback.cloudSaved']?.[index] || source; if (/저장/.test(source) && /실패|못|없어|오류/.test(source)) return messages['feedback.saveFailed']?.[index] || source; return source } function toast(s, tone = '') { const failed = tone === 'error' || (!tone && /실패|못|없어|확인할 수 없|잠갔|중단|오류|거부/.test(s)), success = tone === 'success' || (!failed && /저장했|저장하고|삭제했|추가했|수정했|반영했|해제했/.test(s)); el.toast.textContent = toastText(s); el.toast.classList.toggle('is-error', failed); el.toast.classList.toggle('is-success', success); el.toast.setAttribute('role', failed ? 'alert' : 'status'); el.toast.setAttribute('aria-live', failed ? 'assertive' : 'polite'); el.toast.classList.add('is-visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.toast.classList.remove('is-visible'), failed ? 4200 : 2800) } window.PACKMATE_TOAST = Object.freeze({ show: toast }); function readonlyNotice() { toast('클라우드 일정은 현재 읽기 전용이에요.') } const { save, persist, loadLocalTrips, appendGuestTrip, getGuestDeleteSession, deleteGuestTrip, updateGuestItemDone, changeGuestMissedAttention } = window.PACKMATE_TRIP_STORAGE.createStorage({
     canMutate,
     toast,
     PERSONAL_KEYS,
@@ -149,7 +149,8 @@ const { renderItems, renderPersonal, renderMissed } = window.PACKMATE_CHECKLIST_
     displayTrip,
     getPreviewTrip: () => previewTrip,
     getActiveId: () => activeId,
-    getEssentials: () => essentials
+    getEssentials: () => essentials,
+    getTrips: () => trips
 });
 const { openTrip } = window.PACKMATE_CHECKLIST_CONTROLLER.createController({
     displayTrip,
@@ -165,7 +166,7 @@ const { openTrip } = window.PACKMATE_CHECKLIST_CONTROLLER.createController({
         applyAccess();
         if (dataState.mode === 'guest-preview' && dataState.status === 'unauthenticated' && getGuestDeleteSession()) {
             el.tasks.querySelectorAll('[data-item-kind="task"]').forEach(node => node.disabled = false);
-            el.packing.querySelectorAll('[data-item-kind="packing"]').forEach(node => node.disabled = false);
+            el.packing.querySelectorAll('[data-item-kind="packing"], [data-mark-missed], [data-dismiss-missed-attention]').forEach(node => node.disabled = false);
         }
         scheduleCloudPackingCheckAccess();
     },
@@ -253,6 +254,23 @@ function saveCurrent() { if (!canMutate()) return false; const t = trips.find(x 
         toast('변경 내용을 이 브라우저에 저장했어요.', 'success');
         return true;
     }
+    function changeGuestMissed(itemId, action) {
+        const session = getGuestDeleteSession(), trip = trips.find(value => value?.id === activeId), item = trip?.packing?.find(value => value?.id === itemId);
+        if (!session || !trip || !item || !sameGuestDeleteState(session)) return false;
+        const result = changeGuestMissedAttention(trip.id, item.id, action, session);
+        if (!result?.ok || !sameGuestDeleteState(session) || !Array.isArray(result.trips) || result.trips.length !== trips.length) return false;
+        const expectedIds = new Set(trips.map(value => value.id));
+        if (result.trips.some(value => !value || !expectedIds.has(value.id))) return false;
+        let loaded;
+        try { loaded = result.trips.map(value => freeze(normalize(clone(value)))); }
+        catch (_) { return false }
+        const active = window.PACKMATE_MISSED_ATTENTION?.isActive(item.name, loaded) === true;
+        if (!sameGuestDeleteState(session) || (action === 'dismiss' ? active : !active)) return false;
+        trips = Object.freeze(loaded);
+        openTrip(trip.id, { noHistory: true, keepScroll: true });
+        toast(action === 'dismiss' ? '누락 주의를 해제했어요.' : '누락 기록을 저장했어요.', 'success');
+        return true;
+    }
     function sameCloudDeleteAccount(userId, accountGeneration, authGeneration) {
         const account = window.PACKMATE_ACCOUNT_STATE?.getState?.();
         const auth = window.PACKMATE_AUTH?.getState?.();
@@ -291,7 +309,7 @@ function saveCurrent() { if (!canMutate()) return false; const t = trips.find(x 
             return;
         }
         const enabled = cloudPackingCheckAllowed(activeId);
-        el.packing.querySelectorAll('[data-item-kind="packing"][data-item-id], [data-quantity-step], [data-mark-missed], [data-edit-item], [data-delete-item]').forEach(control => {
+        el.packing.querySelectorAll('[data-item-kind="packing"][data-item-id], [data-quantity-step], [data-mark-missed], [data-dismiss-missed-attention], [data-edit-item], [data-delete-item]').forEach(control => {
             control.disabled = !enabled;
         });
         el.tasks.querySelectorAll('[data-item-kind="task"][data-item-id]').forEach(control => { control.disabled = !enabled; });
@@ -373,7 +391,7 @@ function saveCurrent() { if (!canMutate()) return false; const t = trips.find(x 
             if (matches.length !== 1 || (next.missedItems != null && !Array.isArray(next.missedItems))) return null;
             next.missedItems ||= [];
             let changed = !!matches[0].done;
-            if (!next.missedItems.some(item => key(item?.name) === key(matches[0].name))) {
+            if (!window.PACKMATE_MISSED_ATTENTION?.isActive(matches[0].name, trips)) {
                 const missed = { id: id(), name: matches[0].name, createdAt: Date.now() };
                 if (next.missedItems.some(item => String(item?.id) === String(missed.id))) return null;
                 next.missedItems.push(missed);
@@ -381,6 +399,16 @@ function saveCurrent() { if (!canMutate()) return false; const t = trips.find(x 
             }
             matches[0].done = false;
             return { action: '누락 기록', changed };
+        }
+        if (operation.type === 'missed-dismiss') {
+            const matches = exact(next.packing, operation.itemId), attention = window.PACKMATE_MISSED_ATTENTION;
+            if (matches.length !== 1 || !attention) return null;
+            const dismissal = attention.createDismissal(matches[0].name, trips, id());
+            if (!dismissal) return { action: '누락 해제', changed: false };
+            next.missedAttentionDismissals ||= [];
+            if (!Array.isArray(next.missedAttentionDismissals) || next.missedAttentionDismissals.some(value => value?.id === dismissal.id)) return null;
+            next.missedAttentionDismissals.push(dismissal);
+            return { action: '누락 해제', changed: true };
         }
         if (operation.type === 'missed-remove') {
             const matches = exact(next.missedItems, operation.itemId);
@@ -670,25 +698,28 @@ function saveCurrent() { if (!canMutate()) return false; const t = trips.find(x 
     }
     el.packing.addEventListener('change', changeItem); el.tasks.addEventListener('change', changeItem);
     el.packing.addEventListener('click', e => {
-        const miss = e.target.closest('[data-mark-missed]'), edit = e.target.closest('[data-edit-item]'), del = e.target.closest('[data-delete-item]');
-        if (!miss && !edit && !del) return;
+        const miss = e.target.closest('[data-mark-missed]'), dismiss = e.target.closest('[data-dismiss-missed-attention]'), edit = e.target.closest('[data-edit-item]'), del = e.target.closest('[data-delete-item]');
+        if (!miss && !dismiss && !edit && !del) return;
         if (!canMutate()) {
             e.preventDefault(); e.stopImmediatePropagation();
-            const session = window.PACKMATE_PREVIEW_SESSION, trip = displayTrip(activeId), itemId = (miss || edit || del).dataset[miss ? 'markMissed' : edit ? 'editItem' : 'deleteItem'], item = trip?.packing.find(value => String(value.id) === String(itemId));
+            const session = window.PACKMATE_PREVIEW_SESSION, trip = displayTrip(activeId), itemId = (miss || dismiss || edit || del).dataset[miss ? 'markMissed' : dismiss ? 'dismissMissedAttention' : edit ? 'editItem' : 'deleteItem'], item = trip?.packing.find(value => String(value.id) === String(itemId));
             if (!item) { readonlyNotice(); return }
             if (session?.isActive()) {
                 if (miss) { session.markMissed(itemId); toast('체험 미리보기예요. 입력 내용과 추천 결과는 저장되지 않습니다.'); return }
+                if (dismiss) { readonlyNotice(); return }
                 if (edit) { const name = prompt('준비물 이름을 수정해 주세요.', item.name); if (name !== null && name.trim()) session.renameItem(itemId, name.trim()); return }
                 if (confirm(`“${item.name}” 준비물을 목록에서 삭제할까요?`)) session.removeItem(itemId);
                 return;
             }
+            if (dataState.mode === 'guest-preview') { if ((miss || dismiss) && changeGuestMissed(itemId, dismiss ? 'dismiss' : 'mark')) return; toast('누락 기록 변경을 저장하지 못했어요. 다시 시도해 주세요.', 'error'); return }
             if (!cloudPackingCheckAllowed(activeId)) { readonlyNotice(); return }
             if (miss) { void updateCloudChecklist({ type: 'missed-add', itemId }); return }
+            if (dismiss) { void updateCloudChecklist({ type: 'missed-dismiss', itemId }); return }
             if (edit) { const name = prompt('준비물 이름을 수정해 주세요.', item.name); if (name !== null && name.trim()) void updateCloudChecklist({ type: 'packing-rename', itemId, name: name.trim() }); return }
             if (confirm(`“${item.name}” 준비물을 목록에서 삭제할까요?`)) void updateCloudChecklist({ type: 'packing-remove', itemId });
             return;
         }
-        const t = trips.find(x => x.id === activeId), item = t?.packing.find(x => x.id === (miss || edit || del).dataset[miss ? 'markMissed' : edit ? 'editItem' : 'deleteItem']); if (!t || !item) return; if (miss) { t.missedItems ||= []; if (!t.missedItems.some(x => key(x.name) === key(item.name))) t.missedItems.push({ id: id(), name: item.name, createdAt: Date.now() }); item.done = false; saveCurrent(); renderItems(el.packing, t.packing, 'packing'); renderMissed(); progressUI(); return toast('누락 기록을 저장했어요.') } if (edit) { const n = prompt('준비물 이름을 수정해 주세요.', item.name); if (n === null || !n.trim()) return; item.name = n.trim() } else { if (!confirm(`“${item.name}” 준비물을 목록에서 삭제할까요?`)) return; t.packing = t.packing.filter(x => x.id !== item.id) } if (saveCurrent()) { renderItems(el.packing, t.packing, 'packing'); progressUI(); updateHome() }
+        const t = trips.find(x => x.id === activeId), item = t?.packing.find(x => x.id === (miss || dismiss || edit || del).dataset[miss ? 'markMissed' : dismiss ? 'dismissMissedAttention' : edit ? 'editItem' : 'deleteItem']); if (!t || !item) return; if (dismiss) { const record = window.PACKMATE_MISSED_ATTENTION?.createDismissal(item.name, trips, id()); if (!record) return; t.missedAttentionDismissals ||= []; t.missedAttentionDismissals.push(record); if (!saveCurrent()) { t.missedAttentionDismissals.pop(); return } openTrip(t.id, { noHistory: true, keepScroll: true }); return toast('누락 주의를 해제했어요.', 'success') } if (miss) { t.missedItems ||= []; if (!window.PACKMATE_MISSED_ATTENTION?.isActive(item.name, trips)) t.missedItems.push({ id: id(), name: item.name, createdAt: Date.now() }); item.done = false; saveCurrent(); renderItems(el.packing, t.packing, 'packing'); renderMissed(); progressUI(); return toast('누락 기록을 저장했어요.') } if (edit) { const n = prompt('준비물 이름을 수정해 주세요.', item.name); if (n === null || !n.trim()) return; item.name = n.trim() } else { if (!confirm(`“${item.name}” 준비물을 목록에서 삭제할까요?`)) return; t.packing = t.packing.filter(x => x.id !== item.id) } if (saveCurrent()) { renderItems(el.packing, t.packing, 'packing'); progressUI(); updateHome() }
     });
     el.personal.addEventListener('click', e => { const b = e.target.closest('[data-remove-essential]'); if (!b) return; if (!canMutate()) { readonlyNotice(); return } const x = essentials.find(y => y.id === b.dataset.removeEssential); if (!x || !confirm(`개인 필수품 “${x.name}”을 삭제할까요?`)) return; const old = essentials; essentials = essentials.filter(y => y.id !== x.id); if (save(ESSENTIALS, essentials)) renderPersonal(); else essentials = old });
     el.missed.addEventListener('click', e => { const b = e.target.closest('[data-remove-missed]'); if (!b) return; if (!canMutate()) { const session = window.PACKMATE_PREVIEW_SESSION; if (session?.isActive()) session.removeMissed(b.dataset.removeMissed); else if (cloudPackingCheckAllowed(activeId)) void updateCloudChecklist({ type: 'missed-remove', itemId: b.dataset.removeMissed }); else readonlyNotice(); return } const t = trips.find(x => x.id === activeId); if (!t) return; t.missedItems = t.missedItems.filter(x => x.id !== b.dataset.removeMissed); saveCurrent(); renderMissed() });

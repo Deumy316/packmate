@@ -122,6 +122,7 @@
     'checklist.missedDescription': { ko: '빠뜨린 물건을 기록하면 다음 일정의 목록에서 우선 확인하도록 표시해요.', en: 'Record items you forgot so they are highlighted for your next trip.', tl: 'Itala ang mga nakalimutang gamit para bigyang-pansin sa susunod na iskedyul.' },
     'checklist.missedPriorityTitle': { ko: '지난 누락 준비물', en: 'Previously missed items', tl: 'Mga gamit na dating nakalimutan' },
     'checklist.missedPriorityDescription': { ko: '이전에 빠뜨린 기록이 있어 목록 상단에 표시했어요.', en: 'These were missed before, so they are highlighted at the top.', tl: 'Dati nang nakalimutan ang mga ito kaya itinampok sa itaas.' },
+    'checklist.dismissMissedAttention': { ko: '누락 해제', en: 'Clear alert', tl: 'Alisin ang babala' },
     'checklist.missedAlertTitle': { ko: '누락 기록을 다시 확인해요', en: 'Review previously missed items', tl: 'Suriin muli ang mga dating nakalimutang gamit' },
     'checklist.missedAlertDescription': { ko: '출발이 임박했어요. 목록 상단의 지난 누락 준비물을 직접 확인해 주세요.', en: 'Departure is close. Check the previously missed items at the top of the list.', tl: 'Malapit na ang pag-alis. Suriin ang mga dating nakalimutang gamit sa itaas ng listahan.' },
     'common.close': { ko: '닫기', en: 'Close', tl: 'Isara' },
